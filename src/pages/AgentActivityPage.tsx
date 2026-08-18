@@ -13,9 +13,10 @@ export default function AgentActivityPage(){
   const steps=useQuery({queryKey:['agent-steps',selected],queryFn:()=>auravisApi.agentSteps(selected),enabled:!!selected,refetchInterval:8000});
   const s=summary.data;
   return <main className="page">
-    <div className="eyebrow">M5 • AGENTIC ORCHESTRATION</div><h1>Agent Activity</h1>
-    <p className="lead">Live observability for persisted Auravis agent runs and execution steps. This page reads the existing Spring Boot M5 observability APIs rather than simulating agent activity.</p>
+    <div className="eyebrow">M5 • AGENTIC ORCHESTRATION • COMPLETE</div><h1>Agent Activity</h1>
+    <p className="lead">End-to-end observability for persisted Auravis agent runs and execution steps. M5 coordinates requirement analysis → test design → automation generation → UAT execution → failure diagnosis → deterministic QA decision.</p>
     <section className="metric-grid four compact"><article><strong>{s?.totalRuns??'—'}</strong><span>Total Agent Runs</span></article><article><strong>{s?.running??'—'}</strong><span>Running</span></article><article><strong>{s?.completed??'—'}</strong><span>Completed</span></article><article><strong>{s?.failed??'—'}</strong><span>Failed</span></article></section>
+    <section className="panel"><div className="section-heading"><div><div className="eyebrow">M5 FLOW</div><h2>Persisted orchestration contract</h2></div><span className="status completed">{s?.status??'COMPLETED'}</span></div><div className="flow-grid">{(s?.flow??['REQUIREMENT_ANALYSIS','TEST_DESIGN','AUTOMATION_GENERATION','UAT_EXECUTION','FAILURE_DIAGNOSIS','QUALITY_DECISION']).map((step,index)=><div className="flow-step" key={step}><span>{String(index+1).padStart(2,'0')}</span><strong>{step.replaceAll('_',' ')}</strong></div>)}</div></section>
     <section className="two-col">
       <div className="panel"><div className="section-heading"><div><div className="eyebrow">ORCHESTRATION HISTORY</div><h2>Recent Agent Runs</h2></div><span className="live">● Live</span></div>
         {runs.isError&&<p className="error-text">Unable to load agent runs.</p>}{runs.data?.length===0&&<p className="muted">No M5 agent runs have been persisted yet.</p>}
