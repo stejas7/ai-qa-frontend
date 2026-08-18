@@ -15,10 +15,13 @@ const queryClient = new QueryClient({
   }
 });
 
+const baseUrl = import.meta.env.BASE_URL || '/';
+const routerBase = baseUrl === '/' ? '/' : baseUrl.replace(/\/$/, '');
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={routerBase}>
         <App />
       </BrowserRouter>
     </QueryClientProvider>
