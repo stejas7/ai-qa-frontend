@@ -6,6 +6,9 @@ export type PipelineStats = { uploaded:number; processed:number; completed:numbe
 export type ApplicationTarget = { id?:string; name:string; baseUrl:string; environment:string; authType:string; active?:boolean };
 export type ExecutionStats = { total:number; passed:number; failed:number; passRate:number };
 export type ExecutionHistory = { id?:string; testId:string; targetUrl:string; status:string; durationMs:number; screenshot?:string; diagnosticMessage?:string; executedAt?:string };
+export type AgentSummary = { totalRuns:number; running:number; completed:number; failed:number; milestone:string; status:string };
+export type AgentRun = { id:string; agentType:string; status:string; input?:string; decisionSummary?:string; createdAt?:string; startedAt?:string; completedAt?:string };
+export type AgentStep = { id:string; agentRunId:string; sequenceNo:number; stepType:string; status:string; input?:string; output?:string; createdAt?:string };
 
 async function request<T>(path:string, init?:RequestInit):Promise<T>{
   const response=await fetch(`${API_BASE}${path}`,{cache:'no-store',...init});
@@ -22,7 +25,10 @@ export const auravisApi={
   applications:()=>request<ApplicationTarget[]>('/api/applications?activeOnly=true'),
   addApplication:(target:ApplicationTarget)=>request<ApplicationTarget>('/api/applications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(target)}),
   executionStats:()=>request<ExecutionStats>('/api/execution/stats'),
-  executionHistory:()=>request<ExecutionHistory[]>('/api/execution/history')
+  executionHistory:()=>request<ExecutionHistory[]>('/api/execution/history'),
+  agentSummary:()=>request<AgentSummary>('/api/agent-activity/summary'),
+  agentRuns:(limit=20)=>request<AgentRun[]>(`/api/agent-activity/runs?limit=${limit}`),
+  agentSteps:(runId:string)=>request<AgentStep[]>(`/api/agent-activity/runs/${runId}/steps`)
 };
 
 export const downloadUrl=(runId:string,type:'json'|'xlsx')=>`${API_BASE}/api/pipeline/runs/${runId}/test-cases.${type}`;
