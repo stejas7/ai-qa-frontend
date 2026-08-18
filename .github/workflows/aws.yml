@@ -1,4 +1,4 @@
-name: Deploy Auravis React Preview to EC2
+name: Deploy Auravis React UI to EC2
 
 on:
   push:
@@ -9,12 +9,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: auravis-frontend-ec2
+  group: auravis-frontend-production
   cancel-in-progress: true
 
 env:
-  PREVIEW_PATH: /react-preview
-  DEPLOY_DIR: /var/www/auravis-react-preview
+  PUBLIC_BASE_URL: https://auravis-uat.duckdns.org
+  DEPLOY_DIR: /var/www/auravis-frontend
 
 jobs:
   build:
@@ -32,8 +32,8 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Build production bundle
-        run: npm run build -- --base=/react-preview/
+      - name: TypeScript and production build
+        run: npm run build -- --base=/
 
       - name: Package build
         run: tar -C dist -czf auravis-frontend.tgz .
@@ -46,10 +46,11 @@ jobs:
           retention-days: 3
 
   deploy:
-    name: Deploy preview to EC2
+    name: Deploy React production UI
     needs: build
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 8
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -64,7 +65,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           if [ -z "${EC2_HOST:-}" ] || [ -z "${EC2_USERNAME:-}" ] || [ -z "${EC2_SSH_KEY:-}" ]; then
-            echo "ERROR: EC2_HOST, EC2_USERNAME and EC2_SSH_KEY secrets are required in ai-qa-frontend"
+            echo "ERROR: EC2_HOST, EC2_USERNAME and EC2_SSH_KEY are required"
             exit 1
           fi
           install -m 700 -d ~/.ssh
@@ -72,7 +73,7 @@ jobs:
           chmod 600 ~/.ssh/auravis_ec2
           ssh-keyscan -T 10 -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Verify EC2 SSH connectivity
+      - name: Verify SSH connectivity
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
@@ -80,21 +81,17 @@ jobs:
           set -Eeuo pipefail
           for attempt in 1 2 3; do
             if timeout 60 ssh -i ~/.ssh/auravis_ec2 \
-              -o BatchMode=yes \
-              -o ConnectTimeout=15 \
-              -o ConnectionAttempts=2 \
-              -o ServerAliveInterval=10 \
-              -o ServerAliveCountMax=3 \
+              -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=2 \
+              -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
               "$EC2_USERNAME@$EC2_HOST" 'echo "SSH connection OK"'; then
               exit 0
             fi
             echo "SSH attempt $attempt failed; retrying..."
             sleep 10
           done
-          echo "ERROR: Unable to establish SSH connection to EC2"
           exit 1
 
-      - name: Copy React bundle to EC2
+      - name: Copy React bundle
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
@@ -102,7 +99,7 @@ jobs:
           set -Eeuo pipefail
           scp -i ~/.ssh/auravis_ec2 -o ConnectTimeout=15 auravis-frontend.tgz "$EC2_USERNAME@$EC2_HOST:/tmp/auravis-frontend.tgz"
 
-      - name: Install preview and configure Nginx
+      - name: Install React and switch Nginx root safely
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
@@ -110,9 +107,10 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/auravis_ec2 -o ConnectTimeout=15 "$EC2_USERNAME@$EC2_HOST" 'bash -se' <<'REMOTE_SCRIPT'
           set -Eeuo pipefail
-          DEPLOY_DIR=/var/www/auravis-react-preview
-          NGINX_SNIPPET=/etc/nginx/snippets/auravis-react-preview.conf
+
+          DEPLOY_DIR=/var/www/auravis-frontend
           SITE=/etc/nginx/sites-available/ai-qa
+          BACKUP=/etc/nginx/sites-available/ai-qa.pre-react
 
           sudo install -d -m 755 "$DEPLOY_DIR"
           sudo rm -rf "$DEPLOY_DIR"/*
@@ -120,41 +118,108 @@ jobs:
           sudo chown -R www-data:www-data "$DEPLOY_DIR"
           rm -f /tmp/auravis-frontend.tgz
 
-          cat >/tmp/auravis-react-preview.conf <<'EOF'
-          location = /react-preview {
-              return 301 /react-preview/;
-          }
-
-          location /react-preview/ {
-              alias /var/www/auravis-react-preview/;
-              try_files $uri $uri/ /react-preview/index.html;
-          }
-          EOF
-          sudo mv /tmp/auravis-react-preview.conf "$NGINX_SNIPPET"
-          sudo chmod 644 "$NGINX_SNIPPET"
-
-          if ! sudo grep -q 'auravis-react-preview.conf' "$SITE"; then
-            sudo sed -i '/server_name auravis-uat.duckdns.org;/a\    include /etc/nginx/snippets/auravis-react-preview.conf;' "$SITE"
+          if [ -f "$SITE" ] && [ ! -f "$BACKUP" ]; then
+            sudo cp "$SITE" "$BACKUP"
           fi
 
-          sudo nginx -t
+          cat >/tmp/ai-qa-react <<'EOF'
+          server {
+              listen 80;
+              server_name auravis-uat.duckdns.org;
+              return 301 https://$host$request_uri;
+          }
+
+          server {
+              listen 443 ssl;
+              server_name auravis-uat.duckdns.org;
+
+              ssl_certificate /etc/letsencrypt/live/auravis-uat.duckdns.org/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/auravis-uat.duckdns.org/privkey.pem;
+
+              root /var/www/auravis-frontend;
+              index index.html;
+
+              location /api/ {
+                  proxy_pass http://127.0.0.1:8080;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_read_timeout 300s;
+                  proxy_send_timeout 300s;
+              }
+
+              location /actuator/ {
+                  proxy_pass http://127.0.0.1:8080;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+
+              # Preserve direct links to the legacy Spring Boot pages during migration.
+              location ~ ^/(auravis|dashboard|execution-center|technology|real-world-impact)\.html$ {
+                  proxy_pass http://127.0.0.1:8080;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+
+              location /uat/ {
+                  proxy_pass http://127.0.0.1:8080;
+                  proxy_set_header Host $host;
+              }
+
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+          }
+          EOF
+
+          sudo mv /tmp/ai-qa-react "$SITE"
+          sudo chmod 644 "$SITE"
+
+          if ! sudo nginx -t; then
+            echo "ERROR: New Nginx config invalid; restoring previous config"
+            if [ -f "$BACKUP" ]; then sudo cp "$BACKUP" "$SITE"; fi
+            sudo nginx -t
+            exit 1
+          fi
+
           sudo systemctl reload nginx
+
+          if ! curl --connect-timeout 3 --max-time 10 -fsS http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'; then
+            echo "ERROR: Backend health failed after UI switch; restoring previous Nginx config"
+            if [ -f "$BACKUP" ]; then
+              sudo cp "$BACKUP" "$SITE"
+              sudo nginx -t
+              sudo systemctl reload nginx
+            fi
+            exit 1
+          fi
           REMOTE_SCRIPT
 
-      - name: Verify React preview
+      - name: Verify backend through Nginx
         run: |
           set -Eeuo pipefail
-          for attempt in $(seq 1 10); do
-            code="$(curl --connect-timeout 5 --max-time 10 -sS -o /tmp/auravis-preview.html -w '%{http_code}' https://auravis-uat.duckdns.org/react-preview/ || true)"
-            if [ "$code" = "200" ] && grep -qi '<div id="root"' /tmp/auravis-preview.html; then
-              echo "Auravis React preview is healthy"
+          for i in $(seq 1 10); do
+            response="$(curl --connect-timeout 5 --max-time 10 -fsS "$PUBLIC_BASE_URL/actuator/health" || true)"
+            if echo "$response" | grep -q '"status":"UP"'; then
+              echo "$response"
               exit 0
             fi
-            echo "Preview health attempt $attempt returned HTTP $code"
             sleep 3
           done
-          echo "ERROR: React preview did not become healthy"
+          echo "ERROR: Backend public health check failed"
           exit 1
+
+      - name: Verify React production UI
+        run: |
+          set -Eeuo pipefail
+          code="$(curl --connect-timeout 5 --max-time 15 -sS -o /tmp/auravis.html -w '%{http_code}' "$PUBLIC_BASE_URL/" || true)"
+          if [ "$code" != "200" ] || ! grep -qi '<div id="root"' /tmp/auravis.html; then
+            echo "ERROR: React root UI health check failed with HTTP $code"
+            exit 1
+          fi
+          echo "Auravis React production UI is healthy"
 
       - name: Cleanup SSH key
         if: always()
