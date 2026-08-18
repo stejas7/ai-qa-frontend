@@ -11,6 +11,7 @@ export type AgentRun = { id:string; agentType:string; status:string; input?:stri
 export type AgentStep = { id:string; agentRunId:string; sequenceNo:number; stepType:string; status:string; input?:string; output?:string; createdAt?:string };
 export type HealingStats = { totalAttempts:number; autoHealAllowed:number; blocked:number; autoHealRate:number; milestone:string; status:string; policy?:string };
 export type HealingAttempt = { id:string; testId:string; category:string; originalFailure?:string; proposedRepair?:string; confidence:number; decision:string; createdAt?:string };
+export type AiRuntime = { framework:string; springAiVersion:string; provider:string; model:string; configured:boolean; chatClient:boolean; toolCalling:boolean; qaTools:number; m7Status:string; m7Focus:string; fallback:string };
 export type DailyVisit = { date:string; label:string; visits:number };
 export type PageVisit = { path:string; visits:number };
 export type TrafficStats = { totalVisits:number; visitsToday:number; uniqueVisitors:number; uniqueVisitorsToday:number; mostVisitedPage:string; last7Days:DailyVisit[]; topPages:PageVisit[] };
@@ -37,6 +38,8 @@ export const auravisApi={
   agentSteps:(runId:string)=>request<AgentStep[]>(`/api/agent-activity/runs/${runId}/steps`),
   healingStats:()=>request<HealingStats>('/api/healing/stats'),
   healingHistory:()=>request<HealingAttempt[]>('/api/healing/history'),
+  aiRuntime:()=>request<AiRuntime>('/api/ai/runtime'),
+  askAi:(question:string)=>request<{answer:string}>('/api/ai/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})}),
   trafficStats:()=>request<TrafficStats>('/api/analytics/stats'),
   recentVisits:(limit=20)=>request<RecentVisit[]>(`/api/analytics/recent?limit=${limit}`),
   recordVisit:(path:string,visitorId:string)=>request<{recorded:boolean}>('/api/analytics/visit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,visitorId})})
