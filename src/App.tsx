@@ -7,10 +7,11 @@ import OverviewPage from './pages/OverviewPage';
 import TechnologyPage from './pages/TechnologyPage';
 import KnowledgePage from './pages/KnowledgePage';
 import AgentActivityPage from './pages/AgentActivityPage';
+import ApiReferencePage from './pages/ApiReferencePage';
 import TejasAssistant from './components/TejasAssistant';
 import { auravisApi } from './api/auravis';
 
-const nav=[['Engineering Showcase','/technology'],['Overview','/'],['New Mission','/mission'],['Mission Dashboard','/dashboard'],['Execution Center','/execution'],['Agent Activity','/agents'],['Knowledge & Impact','/knowledge']] as const;
+const nav=[['Engineering Showcase','/technology'],['API Reference','/api-reference'],['Overview','/'],['New Mission','/mission'],['Mission Dashboard','/dashboard'],['Execution Center','/execution'],['Agent Activity','/agents'],['Knowledge & Impact','/knowledge']] as const;
 const VISITOR_KEY='auravis_visitor_id';
 
 function visitorId(){
@@ -25,4 +26,4 @@ function AnalyticsTracker(){
   return null;
 }
 
-export default function App(){return <div className="app-shell"><AnalyticsTracker/><header className="topbar"><div className="brand"><div className="brand-mark">A</div><div><strong>AURAVIS</strong><span>Autonomous UAT Engineer</span></div></div><nav>{nav.map(([label,path])=><NavLink key={path} to={path} end={path==='/'} className={({isActive})=>isActive?'active':''}>{label}</NavLink>)}</nav></header><Routes><Route path="/" element={<OverviewPage/>}/><Route path="/technology" element={<TechnologyPage/>}/><Route path="/mission" element={<NewMissionPage/>}/><Route path="/dashboard" element={<DashboardPage/>}/><Route path="/execution" element={<ExecutionCenterPage/>}/><Route path="/agents" element={<AgentActivityPage/>}/><Route path="/knowledge" element={<KnowledgePage/>}/></Routes><TejasAssistant/></div>}
+export default function App(){return <div className="app-shell"><AnalyticsTracker/><header className="topbar"><div className="brand"><div className="brand-mark">A</div><div><strong>AURAVIS</strong><span>Autonomous UAT Engineer</span></div></div><nav>{nav.map(([label,path])=><NavLink key={path} to={path} end={path==='/'} className={({isActive})=>isActive?'active':''}>{label}</NavLink>)}</nav></header><Routes><Route path="/" element={<OverviewPage/>}/><Route path="/technology" element={<TechnologyPage/>}/><Route path="/api-reference" element={<ApiReferencePage/>}/><Route path="/mission" element={<NewMissionPage/>}/><Route path="/dashboard" element={<DashboardPage/>}/><Route path="/execution" element={<ExecutionCenterPage/>}/><Route path="/agents" element={<AgentActivityPage/>}/><Route path="/knowledge" element={<KnowledgePage/>}/></Routes><TejasAssistant/></div>}
