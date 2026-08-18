@@ -9,6 +9,10 @@ export type ExecutionHistory = { id?:string; testId:string; targetUrl:string; st
 export type AgentSummary = { totalRuns:number; running:number; completed:number; failed:number; milestone:string; status:string };
 export type AgentRun = { id:string; agentType:string; status:string; input?:string; decisionSummary?:string; createdAt?:string; startedAt?:string; completedAt?:string };
 export type AgentStep = { id:string; agentRunId:string; sequenceNo:number; stepType:string; status:string; input?:string; output?:string; createdAt?:string };
+export type DailyVisit = { date:string; label:string; visits:number };
+export type PageVisit = { path:string; visits:number };
+export type TrafficStats = { totalVisits:number; visitsToday:number; uniqueVisitors:number; uniqueVisitorsToday:number; mostVisitedPage:string; last7Days:DailyVisit[]; topPages:PageVisit[] };
+export type RecentVisit = { path:string; visitor:string; visitedAt:string };
 
 async function request<T>(path:string, init?:RequestInit):Promise<T>{
   const response=await fetch(`${API_BASE}${path}`,{cache:'no-store',...init});
@@ -28,7 +32,10 @@ export const auravisApi={
   executionHistory:()=>request<ExecutionHistory[]>('/api/execution/history'),
   agentSummary:()=>request<AgentSummary>('/api/agent-activity/summary'),
   agentRuns:(limit=20)=>request<AgentRun[]>(`/api/agent-activity/runs?limit=${limit}`),
-  agentSteps:(runId:string)=>request<AgentStep[]>(`/api/agent-activity/runs/${runId}/steps`)
+  agentSteps:(runId:string)=>request<AgentStep[]>(`/api/agent-activity/runs/${runId}/steps`),
+  trafficStats:()=>request<TrafficStats>('/api/analytics/stats'),
+  recentVisits:(limit=20)=>request<RecentVisit[]>(`/api/analytics/recent?limit=${limit}`),
+  recordVisit:(path:string,visitorId:string)=>request<{recorded:boolean}>('/api/analytics/visit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,visitorId})})
 };
 
 export const downloadUrl=(runId:string,type:'json'|'xlsx')=>`${API_BASE}/api/pipeline/runs/${runId}/test-cases.${type}`;
