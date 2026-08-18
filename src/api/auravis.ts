@@ -6,9 +6,11 @@ export type PipelineStats = { uploaded:number; processed:number; completed:numbe
 export type ApplicationTarget = { id?:string; name:string; baseUrl:string; environment:string; authType:string; active?:boolean };
 export type ExecutionStats = { total:number; passed:number; failed:number; passRate:number };
 export type ExecutionHistory = { id?:string; testId:string; targetUrl:string; status:string; durationMs:number; screenshot?:string; diagnosticMessage?:string; executedAt?:string };
-export type AgentSummary = { totalRuns:number; running:number; completed:number; failed:number; milestone:string; status:string };
+export type AgentSummary = { totalRuns:number; running:number; completed:number; failed:number; milestone:string; status:string; flow?:string[] };
 export type AgentRun = { id:string; agentType:string; status:string; input?:string; decisionSummary?:string; createdAt?:string; startedAt?:string; completedAt?:string };
 export type AgentStep = { id:string; agentRunId:string; sequenceNo:number; stepType:string; status:string; input?:string; output?:string; createdAt?:string };
+export type HealingStats = { totalAttempts:number; autoHealAllowed:number; blocked:number; autoHealRate:number; milestone:string; status:string; policy?:string };
+export type HealingAttempt = { id:string; testId:string; category:string; originalFailure?:string; proposedRepair?:string; confidence:number; decision:string; createdAt?:string };
 export type DailyVisit = { date:string; label:string; visits:number };
 export type PageVisit = { path:string; visits:number };
 export type TrafficStats = { totalVisits:number; visitsToday:number; uniqueVisitors:number; uniqueVisitorsToday:number; mostVisitedPage:string; last7Days:DailyVisit[]; topPages:PageVisit[] };
@@ -33,6 +35,8 @@ export const auravisApi={
   agentSummary:()=>request<AgentSummary>('/api/agent-activity/summary'),
   agentRuns:(limit=20)=>request<AgentRun[]>(`/api/agent-activity/runs?limit=${limit}`),
   agentSteps:(runId:string)=>request<AgentStep[]>(`/api/agent-activity/runs/${runId}/steps`),
+  healingStats:()=>request<HealingStats>('/api/healing/stats'),
+  healingHistory:()=>request<HealingAttempt[]>('/api/healing/history'),
   trafficStats:()=>request<TrafficStats>('/api/analytics/stats'),
   recentVisits:(limit=20)=>request<RecentVisit[]>(`/api/analytics/recent?limit=${limit}`),
   recordVisit:(path:string,visitorId:string)=>request<{recorded:boolean}>('/api/analytics/visit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,visitorId})})
