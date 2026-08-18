@@ -1,57 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
-import { auravisApi } from '../api/auravis';
+import { Link, useSearchParams } from 'react-router-dom';
+import { auravisApi, downloadUrl } from '../api/auravis';
 
-function statusClass(status: string) {
-  const s = status.toLowerCase();
-  if (s === 'completed') return 'status completed';
-  if (s === 'failed') return 'status failed';
-  return 'status processing';
-}
+function statusClass(status:string){const s=status.toLowerCase();if(s==='completed'||s==='pass')return 'status completed';if(s==='failed'||s==='fail')return 'status failed';return 'status processing'}
 
-export default function DashboardPage() {
-  const stats = useQuery({ queryKey: ['pipeline-stats'], queryFn: auravisApi.stats, refetchInterval: 10000 });
-  const runs = useQuery({ queryKey: ['pipeline-runs'], queryFn: auravisApi.runs, refetchInterval: 10000 });
-
-  const data = stats.data;
-
-  return (
-    <main className="page">
-      <div className="eyebrow">AURAVIS 2.0 • LIVE MISSION CONTROL</div>
-      <h1>Mission Dashboard</h1>
-      <p className="lead">Persistent requirement processing, execution progress and mission history loaded directly from the Spring Boot backend and PostgreSQL.</p>
-
-      <section className="metric-grid">
-        <article><strong>{data?.uploaded ?? '—'}</strong><span>Files Uploaded</span></article>
-        <article><strong>{data?.processed ?? '—'}</strong><span>Files Processed</span></article>
-        <article><strong>{data?.completed ?? '—'}</strong><span>Completed</span></article>
-        <article><strong>{data?.failed ?? '—'}</strong><span>Failed</span></article>
-        <article><strong>{data?.processing ?? '—'}</strong><span>Processing</span></article>
-        <article><strong>{data ? `${data.completionRate}%` : '—'}</strong><span>Processing Rate</span></article>
-      </section>
-
-      <section className="panel">
-        <div className="section-heading"><div><div className="eyebrow">PERSISTED HISTORY</div><h2>Requirement Documents</h2></div><span className="live">● Live</span></div>
-        {runs.isLoading && <p className="muted">Loading requirement documents…</p>}
-        {runs.isError && <p className="error-text">Unable to load mission history from the backend.</p>}
-        {runs.data && runs.data.length === 0 && <p className="muted">No uploaded requirement documents yet.</p>}
-        {runs.data && runs.data.length > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Requirement File</th><th>Project</th><th>Status</th><th>Stage</th><th>Uploaded</th><th>Action</th></tr></thead>
-              <tbody>{runs.data.map(run => (
-                <tr key={run.id}>
-                  <td><strong>{run.fileName}</strong></td>
-                  <td>{run.company || 'default'}</td>
-                  <td><span className={statusClass(run.status)}>{run.status}</span></td>
-                  <td>{run.currentStage || '—'}</td>
-                  <td>{run.createdAt ? new Date(run.createdAt).toLocaleString() : '—'}</td>
-                  <td><a className="view-link" href={`/dashboard?run=${encodeURIComponent(run.id)}`}>View</a></td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </main>
-  );
+export default function DashboardPage(){
+  const [params,setParams]=useSearchParams();
+  const stats=useQuery({queryKey:['pipeline-stats'],queryFn:auravisApi.stats,refetchInterval:10000});
+  const runs=useQuery({queryKey:['pipeline-runs'],queryFn:auravisApi.runs,refetchInterval:10000});
+  const selectedId=params.get('run')||runs.data?.[0]?.id;
+  const detail=useQuery({queryKey:['pipeline-run',selectedId],queryFn:()=>auravisApi.run(selectedId!),enabled:!!selectedId,refetchInterval:q=>q.state.data?.status==='RUNNING'||q.state.data?.status==='QUEUED'?2500:false});
+  const data=stats.data;let result:any=null;try{result=detail.data?.resultJson?JSON.parse(detail.data.resultJson):null}catch{}
+  return <main className="page"><div className="eyebrow">AURAVIS 2.0 • LIVE MISSION CONTROL</div><h1>Mission Dashboard</h1><p className="lead">Requirement documents and mission results are restored from PostgreSQL after every page refresh.</p>
+    <section className="metric-grid"><article><strong>{data?.uploaded??'—'}</strong><span>Files Uploaded</span></article><article><strong>{data?.processed??'—'}</strong><span>Files Processed</span></article><article><strong>{data?.completed??'—'}</strong><span>Completed</span></article><article><strong>{data?.failed??'—'}</strong><span>Failed</span></article><article><strong>{data?.processing??'—'}</strong><span>Processing</span></article><article><strong>{data?`${data.completionRate}%`:'—'}</strong><span>Processing Rate</span></article></section>
+    <section className="panel"><div className="section-heading"><div><div className="eyebrow">PERSISTED HISTORY</div><h2>Requirement Documents</h2></div><span className="live">● Live</span></div>{runs.isLoading&&<p className="muted">Loading requirement documents…</p>}{runs.isError&&<p className="error-text">Unable to load mission history from backend.</p>}{runs.data?.length===0&&<p className="muted">No uploaded requirement documents yet.</p>}{runs.data&&runs.data.length>0&&<div className="table-wrap"><table><thead><tr><th>Requirement File</th><th>Project</th><th>Status</th><th>Stage</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{runs.data.map(run=><tr key={run.id} className={run.id===selectedId?'selected-row':''}><td><strong>{run.fileName}</strong></td><td>{run.company||'default'}</td><td><span className={statusClass(run.status)}>{run.status}</span></td><td>{run.currentStage||'—'}</td><td>{run.createdAt?new Date(run.createdAt).toLocaleString():'—'}</td><td><button className="link-button" onClick={()=>setParams({run:run.id})}>View</button></td></tr>)}</tbody></table></div>}</section>
+    {selectedId&&<section className="panel"><div className="section-heading"><div><div className="eyebrow">MISSION DETAIL</div><h2>{detail.data?.fileName||'Loading mission…'}</h2></div>{detail.data&&<span className={statusClass(detail.data.status)}>{detail.data.status}</span>}</div>{detail.isError&&<p className="error-text">Unable to load this mission.</p>}{detail.data&&<><p className="muted">{detail.data.company||'default'} • {detail.data.currentStage||'—'}</p>{detail.data.errorMessage&&<p className="error-text">{detail.data.errorMessage}</p>}{detail.data.status==='COMPLETED'&&<div className="form-actions"><a className="primary-btn" href={downloadUrl(detail.data.id,'xlsx')}>Download Excel</a><a className="secondary-btn" href={downloadUrl(detail.data.id,'json')}>Download JSON</a></div>}{result&&<><div className="metric-grid four compact"><article><strong>{result.requirements?.length??result.totalRequirements??'—'}</strong><span>Requirements</span></article><article><strong>{result.totalTests??result.testCases?.length??'—'}</strong><span>Generated Tests</span></article><article><strong>{(result.passedTests??0)+(result.failedTests??0)}</strong><span>Executed</span></article><article><strong>{result.qualityGate?.decision??result.decision??'—'}</strong><span>QA Decision</span></article></div><details className="result-json"><summary>View structured mission result</summary><pre>{JSON.stringify(result,null,2)}</pre></details></>}</>}</section>}
+    <div className="page-actions"><Link className="primary-btn" to="/mission">Start New Mission</Link></div>
+  </main>
 }
