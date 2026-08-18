@@ -4,30 +4,31 @@ type Group={title:string;description:string;endpoints:Endpoint[]};
 
 const groups:Group[]=[
   {title:'Mission Pipeline',description:'Requirement upload, persisted mission history, status and generated test exports.',endpoints:[
-    {method:'POST',path:'/api/pipeline/upload',purpose:'Upload BRD/PRD/requirement file and start an asynchronous Auravis mission.',milestone:'M1–M5'},
+    {method:'POST',path:'/api/pipeline/upload',purpose:'Upload BRD/PRD/requirement file and start an asynchronous Auravis mission.',milestone:'M1–M6'},
     {method:'GET',path:'/api/pipeline/runs',purpose:'List persisted requirement-processing runs.',milestone:'M1'},
     {method:'GET',path:'/api/pipeline/stats',purpose:'Mission processing dashboard metrics.',milestone:'M1'},
     {method:'GET',path:'/api/pipeline/runs/{id}',purpose:'Get one mission including status, stage, errors and structured result.',milestone:'M1'},
     {method:'GET',path:'/api/pipeline/runs/{id}/test-cases.json',purpose:'Download the structured mission result as JSON.',milestone:'M3'},
     {method:'GET',path:'/api/pipeline/runs/{id}/test-cases.xlsx',purpose:'Download generated test cases as Excel.',milestone:'M3'}]},
-  {title:'Execution & Evidence',description:'Deterministic Playwright execution, history, metrics and screenshots.',endpoints:[
-    {method:'POST',path:'/api/execution/run',purpose:'Execute a controlled Playwright test request.',milestone:'M4/M6'},
+  {title:'Execution & Evidence',description:'Deterministic Playwright execution, history, metrics, screenshots and M6-controlled recovery.',endpoints:[
+    {method:'POST',path:'/api/execution/run',purpose:'Execute a controlled Playwright test request with M6 self-healing policy integrated into runtime failures.',milestone:'M4/M6'},
     {method:'GET',path:'/api/execution/history',purpose:'Read the latest persisted execution records.',milestone:'M4'},
     {method:'GET',path:'/api/execution/stats',purpose:'Execution totals, PASS/FAIL and pass rate.',milestone:'M4'},
-    {method:'GET',path:'/api/execution/evidence/{file}',purpose:'Retrieve execution screenshot evidence.',milestone:'M4'}]},
+    {method:'GET',path:'/api/execution/evidence/{file}',purpose:'Retrieve execution screenshot evidence.',milestone:'M4/M6'}]},
   {title:'Application Targets',description:'Registered UAT applications used by missions and execution.',endpoints:[
     {method:'GET',path:'/api/applications?activeOnly=true',purpose:'List active registered UAT targets.',milestone:'M4'},
     {method:'POST',path:'/api/applications',purpose:'Register a UAT application target.',milestone:'M4'},
     {method:'PATCH',path:'/api/applications/{id}/active?value=true',purpose:'Enable or disable an application target.',milestone:'M4'}]},
-  {title:'Agent Orchestration',description:'Read-only traceability for persisted M5 agent runs and ordered agent steps.',endpoints:[
-    {method:'GET',path:'/api/agent-activity/summary',purpose:'Agent-run totals and M5 status.',milestone:'M5'},
+  {title:'Agent Orchestration',description:'Completed M5 end-to-end orchestration plus persisted run/step observability.',endpoints:[
+    {method:'POST',path:'/api/agents/pipeline',purpose:'Run the full M5 flow: requirement analysis → test design → automation generation → UAT execution → diagnosis → quality decision.',milestone:'M5'},
+    {method:'GET',path:'/api/agent-activity/summary',purpose:'Agent-run totals, completed M5 status and orchestration flow.',milestone:'M5'},
     {method:'GET',path:'/api/agent-activity/runs?limit=20',purpose:'Recent persisted agent orchestration runs.',milestone:'M5'},
     {method:'GET',path:'/api/agent-activity/runs/{runId}/steps',purpose:'Ordered agent execution trace for a selected run.',milestone:'M5'}]},
-  {title:'Self-Healing',description:'Conservative M6 classification and healing audit APIs. Business/assertion failures are protected from auto-healing.',endpoints:[
-    {method:'POST',path:'/api/healing/evaluate',purpose:'Evaluate a proposed repair against the healing policy.',milestone:'M6'},
-    {method:'GET',path:'/api/healing/history',purpose:'Read the latest persisted healing decisions.',milestone:'M6'},
-    {method:'GET',path:'/api/healing/stats',purpose:'Healing attempts, allowed/blocked counts and auto-heal rate.',milestone:'M6'}]},
-  {title:'Failure Intelligence & Quality',description:'Failure diagnosis and deterministic release-quality evaluation.',endpoints:[
+  {title:'Self-Healing',description:'Completed M6 conservative healing policy. Only recoverable automation failures may heal; assertion/business failures are protected.',endpoints:[
+    {method:'POST',path:'/api/healing/evaluate',purpose:'Evaluate a proposed repair against the deterministic healing policy.',milestone:'M6'},
+    {method:'GET',path:'/api/healing/history',purpose:'Read persisted healing decisions and proposed repairs.',milestone:'M6'},
+    {method:'GET',path:'/api/healing/stats',purpose:'Healing attempts, allowed/blocked counts, auto-heal rate and M6 policy/status.',milestone:'M6'}]},
+  {title:'Failure Intelligence & Quality',description:'Failure diagnosis and deterministic release-quality evaluation used by M5/M6.',endpoints:[
     {method:'POST',path:'/api/failure-analysis/analyze',purpose:'Diagnose a failed test with deterministic fallback and optional AI analysis.',milestone:'M5/M6'},
     {method:'POST',path:'/api/quality-gate/evaluate',purpose:'Return an evidence-based APPROVED or BLOCKED release decision.',milestone:'M5/M8'}]},
   {title:'Product Analytics',description:'Privacy-friendly anonymous visitor analytics used by the React Mission Dashboard.',endpoints:[
@@ -43,7 +44,7 @@ export default function ApiReferencePage(){
   return <main className="page api-page">
     <div className="eyebrow">ENGINEERING SHOWCASE • BACKEND CONTRACT</div>
     <h1>Auravis Backend API Reference</h1>
-    <p className="lead">This page documents the product-facing REST contract between the React frontend and the Java/Spring Boot backend. It is intended to make the architecture understandable to engineers reviewing Auravis from the UI.</p>
+    <p className="lead">This page documents the product-facing REST contract between the React frontend and the Java/Spring Boot backend. M5 orchestration and M6 self-healing are now first-class documented product capabilities.</p>
 
     <section className="metric-grid four compact">
       <article><strong>{total}</strong><span>Documented endpoints</span></article>
