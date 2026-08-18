@@ -1,37 +1,28 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-export type PipelineRunSummary = {
-  id: string;
-  company: string;
-  fileName: string;
-  status: string;
-  currentStage?: string;
-  createdAt?: string;
-  completedAt?: string;
-};
+export type PipelineRunSummary = { id:string; company:string; fileName:string; status:string; currentStage?:string; createdAt?:string; completedAt?:string };
+export type PipelineRunDetail = PipelineRunSummary & { errorMessage?:string; resultJson?:string };
+export type PipelineStats = { uploaded:number; processed:number; completed:number; failed:number; processing:number; completionRate:number };
+export type ApplicationTarget = { id?:string; name:string; baseUrl:string; environment:string; authType:string; active?:boolean };
+export type ExecutionStats = { total:number; passed:number; failed:number; passRate:number };
+export type ExecutionHistory = { id?:string; testId:string; targetUrl:string; status:string; durationMs:number; screenshot?:string; diagnosticMessage?:string; executedAt?:string };
 
-export type PipelineRunDetail = PipelineRunSummary & {
-  errorMessage?: string;
-  resultJson?: string;
-};
-
-export type PipelineStats = {
-  uploaded: number;
-  processed: number;
-  completed: number;
-  failed: number;
-  processing: number;
-  completionRate: number;
-};
-
-async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`API ${response.status}: ${path}`);
+async function request<T>(path:string, init?:RequestInit):Promise<T>{
+  const response=await fetch(`${API_BASE}${path}`,{cache:'no-store',...init});
+  if(!response.ok){let message=`API ${response.status}: ${path}`;try{const body=await response.json();message=body.error||message}catch{}throw new Error(message)}
+  if(response.status===204) return undefined as T;
   return response.json();
 }
 
-export const auravisApi = {
-  runs: () => request<PipelineRunSummary[]>('/api/pipeline/runs'),
-  stats: () => request<PipelineStats>('/api/pipeline/stats'),
-  run: (id: string) => request<PipelineRunDetail>(`/api/pipeline/runs/${id}`)
+export const auravisApi={
+  runs:()=>request<PipelineRunSummary[]>('/api/pipeline/runs'),
+  stats:()=>request<PipelineStats>('/api/pipeline/stats'),
+  run:(id:string)=>request<PipelineRunDetail>(`/api/pipeline/runs/${id}`),
+  upload:async(file:File, company:string, targetUrl:string)=>{const form=new FormData();form.append('file',file);if(company.trim())form.append('company',company.trim());if(targetUrl.trim())form.append('targetUrl',targetUrl.trim());form.append('executeAutomation','true');return request<{runId:string;status:string}>('/api/pipeline/upload',{method:'POST',body:form})},
+  applications:()=>request<ApplicationTarget[]>('/api/applications?activeOnly=true'),
+  addApplication:(target:ApplicationTarget)=>request<ApplicationTarget>('/api/applications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(target)}),
+  executionStats:()=>request<ExecutionStats>('/api/execution/stats'),
+  executionHistory:()=>request<ExecutionHistory[]>('/api/execution/history')
 };
+
+export const downloadUrl=(runId:string,type:'json'|'xlsx')=>`${API_BASE}/api/pipeline/runs/${runId}/test-cases.${type}`;
