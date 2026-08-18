@@ -1,5 +1,5 @@
 const groups = [
-  ['Backend & Architecture',['Java 21','Spring Boot 3.5','Spring Data JPA','REST APIs','Maven']],
+  ['Backend & Architecture',['Java 17+','Spring Boot 3.5.3','Spring Data JPA','REST APIs','Maven']],
   ['Frontend',['React 19','TypeScript','Vite','React Router','TanStack Query']],
   ['Spring AI Runtime',['Spring AI 1.1.8','ChatClient','OpenAI Integration','Tool Calling','Typed AI Services']],
   ['AI & Agentic Engineering',['Requirement Intelligence','Failure Diagnosis','RAG','AI Agents','Agent Orchestration','Deterministic Fallback']],
