@@ -5,7 +5,7 @@ export type PipelineRunDetail = PipelineRunSummary & { errorMessage?:string; res
 export type PipelineStats = { uploaded:number; processed:number; completed:number; failed:number; processing:number; completionRate:number };
 export type ApplicationTarget = { id?:string; name:string; baseUrl:string; environment:string; authType:string; active?:boolean };
 export type ExecutionStats = { total:number; passed:number; failed:number; passRate:number };
-export type ExecutionHistory = { id?:string; testId:string; targetUrl:string; status:string; durationMs:number; screenshot?:string; diagnosticMessage?:string; executedAt?:string };
+export type ExecutionHistory = { id?:string; testId:string; targetUrl:string; status:string; durationMs:number; screenshot?:string; diagnosticMessage?:string };
 export type AgentSummary = { totalRuns:number; running:number; completed:number; failed:number; milestone:string; status:string; flow?:string[] };
 export type AgentRun = { id:string; agentType:string; status:string; input?:string; decisionSummary?:string; createdAt?:string; startedAt?:string; completedAt?:string };
 export type AgentStep = { id:string; agentRunId:string; sequenceNo:number; stepType:string; status:string; input?:string; output?:string; createdAt?:string };
@@ -46,3 +46,4 @@ export const auravisApi={
 };
 
 export const downloadUrl=(runId:string,type:'json'|'xlsx')=>`${API_BASE}/api/pipeline/runs/${runId}/test-cases.${type}`;
+export const evidenceUrl=(path:string)=>/^https?:\/\//i.test(path)?path:`${API_BASE}${path.startsWith('/')?'':'/'}${path}`;
