@@ -9,11 +9,11 @@ import KnowledgePage from './pages/KnowledgePage';
 import AgentActivityPage from './pages/AgentActivityPage';
 import ApiReferencePage from './pages/ApiReferencePage';
 import HealingPage from './pages/HealingPage';
-import TejasAssistant from './components/TejasAssistant';
+import ProductAssistant from './components/TejasAssistant';
 import { auravisApi } from './api/auravis';
 
 const nav=[['Engineering Showcase','/technology'],['API Reference','/api-reference'],['Overview','/'],['New Mission','/mission'],['Mission Dashboard','/dashboard'],['Execution Center','/execution'],['Agent Activity','/agents'],['Self-Healing','/healing'],['Knowledge & Impact','/knowledge']] as const;
-const VISITOR_KEY='auravis_visitor_id';
+const VISITOR_KEY='ai_uat_engineer_visitor_id';
 
 function visitorId(){
   let id=localStorage.getItem(VISITOR_KEY);
@@ -27,4 +27,4 @@ function AnalyticsTracker(){
   return null;
 }
 
-export default function App(){return <div className="app-shell"><AnalyticsTracker/><header className="topbar"><div className="brand"><div className="brand-mark">A</div><div><strong>AURAVIS</strong><span>Autonomous UAT Engineer</span></div></div><nav>{nav.map(([label,path])=><NavLink key={path} to={path} end={path==='/'} className={({isActive})=>isActive?'active':''}>{label}</NavLink>)}</nav></header><Routes><Route path="/" element={<OverviewPage/>}/><Route path="/technology" element={<TechnologyPage/>}/><Route path="/api-reference" element={<ApiReferencePage/>}/><Route path="/mission" element={<NewMissionPage/>}/><Route path="/dashboard" element={<DashboardPage/>}/><Route path="/execution" element={<ExecutionCenterPage/>}/><Route path="/agents" element={<AgentActivityPage/>}/><Route path="/healing" element={<HealingPage/>}/><Route path="/knowledge" element={<KnowledgePage/>}/></Routes><TejasAssistant/></div>}
+export default function App(){return <div className="app-shell"><AnalyticsTracker/><header className="topbar"><div className="brand"><div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>Autonomous UAT Engineering Platform</span></div></div><nav>{nav.map(([label,path])=><NavLink key={path} to={path} end={path==='/'} className={({isActive})=>isActive?'active':''}>{label}</NavLink>)}</nav></header><Routes><Route path="/" element={<OverviewPage/>}/><Route path="/technology" element={<TechnologyPage/>}/><Route path="/api-reference" element={<ApiReferencePage/>}/><Route path="/mission" element={<NewMissionPage/>}/><Route path="/dashboard" element={<DashboardPage/>}/><Route path="/execution" element={<ExecutionCenterPage/>}/><Route path="/agents" element={<AgentActivityPage/>}/><Route path="/healing" element={<HealingPage/>}/><Route path="/knowledge" element={<KnowledgePage/>}/></Routes><ProductAssistant/></div>}
