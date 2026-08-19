@@ -1,0 +1,20 @@
+import { FormEvent, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { aiUatApi, GeneratedAutomation } from '../api/aiUat';
+
+export default function AutomationScriptsPage(){
+  const qc=useQueryClient();
+  const [companyId,setCompanyId]=useState('');const [productId,setProductId]=useState('');const [name,setName]=useState('');
+  const [steps,setSteps]=useState('open the application\nclick "Login"\nverify "Dashboard"');const [generated,setGenerated]=useState<GeneratedAutomation>();
+  const scripts=useQuery({queryKey:['automation-scripts',companyId,productId],queryFn:()=>aiUatApi.automationScripts(companyId,productId),enabled:!!companyId&&!!productId});
+  const create=useMutation({mutationFn:()=>aiUatApi.createAutomationScript({companyId,productId,name,steps:steps.split('\n').map(x=>x.trim()).filter(Boolean)}),onSuccess:async()=>{setName('');await qc.invalidateQueries({queryKey:['automation-scripts',companyId,productId]})}});
+  const approve=useMutation({mutationFn:(id:string)=>aiUatApi.approveAutomationScript(id),onSuccess:()=>qc.invalidateQueries({queryKey:['automation-scripts',companyId,productId]})});
+  const generate=useMutation({mutationFn:(id:string)=>aiUatApi.generateAutomationScript(id,{}),onSuccess:setGenerated});
+  const submit=(e:FormEvent)=>{e.preventDefault();create.mutate()};
+  return <main className="page"><div className="eyebrow">M12 • AUTOMATION SCRIPT INTELLIGENCE</div><h1>Automation Scripts</h1><p className="lead">Manage testware as governed product assets: validate controlled steps, approve a version, then generate inspectable Playwright/JUnit automation.</p>
+    <section className="panel"><div className="form-grid"><label className="field"><span>Company ID</span><input value={companyId} onChange={e=>setCompanyId(e.target.value)} placeholder="Company UUID"/></label><label className="field"><span>Product ID</span><input value={productId} onChange={e=>setProductId(e.target.value)} placeholder="Product UUID"/></label></div></section>
+    <section className="panel"><div className="eyebrow">CREATE TESTWARE</div><form onSubmit={submit}><label className="field"><span>Script name</span><input value={name} onChange={e=>setName(e.target.value)} required/></label><label className="field"><span>Controlled steps</span><textarea value={steps} onChange={e=>setSteps(e.target.value)} rows={7}/><small>One step per line. Supported verbs include open, enter, fill, select, check, tick, click and verify.</small></label><button className="primary-btn" disabled={!companyId||!productId||!name||create.isPending}>Create draft</button>{create.isError&&<p className="error-text">{create.error.message}</p>}</form></section>
+    <section className="panel"><div className="section-heading"><div><div className="eyebrow">SCRIPT REPOSITORY</div><h2>Managed versions</h2></div></div>{scripts.isError&&<p className="error-text">{scripts.error.message}</p>}<div className="stack-list">{scripts.data?.map(s=><div className="list-card" key={s.id}><div><strong>{s.name}</strong><small>AT-{s.id} • v{s.version} • {s.steps.length} steps</small></div><div className="button-row"><span className={`status ${s.status==='APPROVED'?'completed':'processing'}`}>{s.status}</span>{s.status!=='APPROVED'&&<button className="secondary-btn" onClick={()=>approve.mutate(s.id)}>Approve</button>}<button className="primary-btn" disabled={s.status!=='APPROVED'||generate.isPending} onClick={()=>generate.mutate(s.id)}>Generate</button></div></div>)}{scripts.data?.length===0&&<p className="muted">No automation scripts for this product yet.</p>}</div></section>
+    {generated&&<section className="panel"><div className="eyebrow">GENERATED TESTWARE</div><h2>{generated.fileName}</h2><p className="muted">{generated.framework} • {generated.language}</p><details className="result-json" open><summary>Inspect generated code</summary><pre>{generated.code}</pre></details></section>}
+  </main>
+}
