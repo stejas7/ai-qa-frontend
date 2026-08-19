@@ -18,7 +18,7 @@ export default function HealingPage(){
   return <main className="page">
     <div className="eyebrow">M6 • SELF-HEALING & SMART RECOVERY</div>
     <h1>Controlled Self-Healing</h1>
-    <p className="lead">Auravis heals only recoverable automation failures. Assertion and business failures are protected, confidence must be at least 90%, and the execution engine performs at most one controlled retry with persisted audit evidence.</p>
+    <p className="lead">AI UAT Engineer heals only recoverable automation failures. Assertion and business failures are protected, confidence must be at least 90%, and the execution engine performs at most one controlled retry with persisted audit evidence.</p>
     {error&&<p className="error-text">{error}</p>}
 
     <section className="metric-grid four">
