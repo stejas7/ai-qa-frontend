@@ -12,7 +12,7 @@ import HealingPage from './pages/HealingPage';
 import ProductAssistant from './components/TejasAssistant';
 import { auravisApi } from './api/auravis';
 
-const nav=[['Engineering Showcase','/technology'],['API Reference','/api-reference'],['Overview','/'],['New Mission','/mission'],['Mission Dashboard','/dashboard'],['Execution Center','/execution'],['Agent Activity','/agents'],['Self-Healing','/healing'],['Knowledge & Impact','/knowledge']] as const;
+const nav=[['Overview','/'],['New Mission','/mission'],['Dashboard','/dashboard'],['Execution','/execution'],['Knowledge','/knowledge']] as const;
 const VISITOR_KEY='ai_uat_engineer_visitor_id';
 
 function visitorId(){
