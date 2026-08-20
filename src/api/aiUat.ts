@@ -34,6 +34,7 @@ export const aiUatApi={
   registerCompany:(payload:{companyName:string;slug?:string;adminEmail:string;password:string})=>request<CompanyRegistration>('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
   login:(email:string,password:string)=>request<CurrentUser>('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})}),
   currentUser:()=>request<CurrentUser>('/api/auth/me'),logout:()=>request<{loggedOut:boolean}>('/api/auth/logout',{method:'POST'}),
+  ssoProviders:()=>request<{providers:string[]}>('/api/auth/sso/providers'),
   companyUsers:()=>request<CompanyUser[]>('/api/company/users'),createCompanyUser:(payload:{email:string;password:string;role:'QA_MANAGER'|'TESTER'|'VIEWER'})=>request<CompanyUser>('/api/company/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),deactivateCompanyUser:(id:string)=>request<CompanyUser>(`/api/company/users/${id}/deactivate`,{method:'PATCH'}),
   runs:()=>request<PipelineRunSummary[]>('/api/pipeline/runs'),stats:()=>request<PipelineStats>('/api/pipeline/stats'),run:(id:string)=>request<PipelineRunDetail>(`/api/pipeline/runs/${id}`),
   uploadTenantUat:async(file:File,targetId:string)=>{const form=new FormData();form.append('file',file);form.append('targetId',targetId);return request<{runId:string;status:string}>('/api/company/uat/upload',{method:'POST',body:form})},
@@ -47,5 +48,6 @@ export const aiUatApi={
   traceability:(companyId:string,productId:string)=>request<TestTraceability[]>(`/api/test-management/traceability?companyId=${encodeURIComponent(companyId)}&productId=${encodeURIComponent(productId)}`),createTraceability:(payload:{companyId:string;productId:string;requirementId:string;testCondition:string;testCaseId:string;automationScriptId?:string;riskLevel:string;expectedResult:string;entryCriteriaMet:boolean})=>request<TestTraceability>('/api/test-management/traceability',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),recordTraceabilityExecution:(id:string,payload:{executionId:string;status:string;actualResult:string;defectRef?:string})=>request<TestTraceability>(`/api/test-management/traceability/${id}/execution`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),testCompletionSummary:(companyId:string,productId:string)=>request<TestCompletionSummary>(`/api/test-management/summary?companyId=${encodeURIComponent(companyId)}&productId=${encodeURIComponent(productId)}`)
 };
 
+export const ssoLoginUrl=(provider:'google'|'github')=>`${API_BASE}/api/auth/sso/authorization/${provider}`;
 export const downloadUrl=(runId:string,type:'json'|'xlsx')=>`${API_BASE}/api/pipeline/runs/${runId}/test-cases.${type}`;
 export const evidenceUrl=(path:string)=>/^https?:\/\//i.test(path)?path:`${API_BASE}${path.startsWith('/')?'':'/'}${path}`;
