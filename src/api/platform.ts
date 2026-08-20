@@ -4,4 +4,5 @@ export type PlatformCompany={id:string;name:string;slug:string;active:boolean;pr
 export type PlatformProduct={id:string;companyId:string;name:string;environment:string;authType:string;active:boolean};
 export type PlatformUser={id:string;companyId:string;email:string;role:string;active:boolean};
 export type PlatformOperation={id:string;company:string;fileName:string;status:string;currentStage:string;createdAt:string;completedAt:string|null;durationMillis:number|null;failureSummary:string|null};
-export const platformApi={companies:()=>get<PlatformCompany[]>('/api/platform/companies'),products:()=>get<PlatformProduct[]>('/api/platform/products'),users:()=>get<PlatformUser[]>('/api/platform/users'),operations:()=>get<PlatformOperation[]>('/api/platform/operations')};
+export type PlatformFailure={id:string;company:string;fileName:string;failedStage:string;createdAt:string;failedAt:string|null;diagnostic:string};
+export const platformApi={companies:()=>get<PlatformCompany[]>('/api/platform/companies'),products:()=>get<PlatformProduct[]>('/api/platform/products'),users:()=>get<PlatformUser[]>('/api/platform/users'),operations:()=>get<PlatformOperation[]>('/api/platform/operations'),failures:()=>get<PlatformFailure[]>('/api/platform/failures')};
