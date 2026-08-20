@@ -33,7 +33,8 @@ async function request<T>(path:string,init?:RequestInit):Promise<T>{const respon
 export const aiUatApi={
   registerCompany:(payload:{companyName:string;slug?:string;adminEmail:string;password:string})=>request<CompanyRegistration>('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
   login:(email:string,password:string)=>request<CurrentUser>('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})}),
-  currentUser:()=>request<CurrentUser>('/api/auth/me'),logout:()=>request<{loggedOut:boolean}>('/api/auth/logout',{method:'POST'}),
+  currentUser:()=>request<CurrentUser>('/api/auth/me'),
+  logout:async()=>{const result=await request<{loggedOut:boolean}>('/api/auth/logout',{method:'POST'});window.location.assign('/');return result},
   ssoProviders:()=>request<{providers:string[]}>('/api/auth/sso/providers'),
   companyUsers:()=>request<CompanyUser[]>('/api/company/users'),createCompanyUser:(payload:{email:string;password:string;role:'QA_MANAGER'|'TESTER'|'VIEWER'})=>request<CompanyUser>('/api/company/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),deactivateCompanyUser:(id:string)=>request<CompanyUser>(`/api/company/users/${id}/deactivate`,{method:'PATCH'}),
   runs:()=>request<PipelineRunSummary[]>('/api/pipeline/runs'),stats:()=>request<PipelineStats>('/api/pipeline/stats'),run:(id:string)=>request<PipelineRunDetail>(`/api/pipeline/runs/${id}`),
@@ -50,4 +51,4 @@ export const aiUatApi={
 
 export const ssoLoginUrl=(provider:'google'|'github')=>`${API_BASE}/api/auth/sso/authorization/${provider}`;
 export const downloadUrl=(runId:string,type:'json'|'xlsx')=>`${API_BASE}/api/pipeline/runs/${runId}/test-cases.${type}`;
-export const evidenceUrl=(path:string)=>/^https?:\/\//i.test(path)?path:`${API_BASE}${path.startsWith('/')?'':'/'}${path}`;
+export const evidenceUrl=(path:string)=>{if(/^https?:\/\//i.test(path))return path;const normalized=path.replace(/\\/g,'/');const marker='/api/execution/evidence/';const markerIndex=normalized.indexOf(marker);if(markerIndex>=0)return `${API_BASE}${normalized.substring(markerIndex)}`;const fileName=normalized.split('/').filter(Boolean).pop();return fileName?`${API_BASE}${marker}${encodeURIComponent(fileName)}`:'#'};
