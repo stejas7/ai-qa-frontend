@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
-import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import DashboardPage from './pages/DashboardPage';
 import NewMissionPage from './pages/NewMissionPage';
 import ExecutionCenterPage from './pages/ExecutionCenterPage';
 import OverviewPage from './pages/OverviewPage';
+import PublicLandingPage from './pages/PublicLandingPage';
 import TechnologyPage from './pages/TechnologyPage';
 import KnowledgePage from './pages/KnowledgePage';
 import AgentActivityPage from './pages/AgentActivityPage';
@@ -16,9 +18,29 @@ import AccountPage from './pages/AccountPage';
 import ProductAssistant from './components/ProductAssistant';
 import { aiUatApi } from './api/aiUat';
 
-const nav=[['Home','/'],['Start UAT','/mission'],['Results','/dashboard'],['Execution','/execution'],['Performance','/performance'],['Automation','/automation-scripts'],['Test Management','/test-management'],['Knowledge','/knowledge'],['Account','/account']] as const;
+const appNav=[['Home','/'],['Start UAT','/mission'],['Results','/dashboard'],['Execution','/execution'],['Performance','/performance'],['Automation','/automation-scripts'],['Test Management','/test-management'],['Knowledge','/knowledge'],['Account','/account']] as const;
 const VISITOR_KEY='ai_uat_engineer_visitor_id';
 function visitorId(){let id=localStorage.getItem(VISITOR_KEY);if(!id){id=typeof crypto!=='undefined'&&'randomUUID' in crypto?crypto.randomUUID():`visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;localStorage.setItem(VISITOR_KEY,id)}return id}
 function AnalyticsTracker(){const location=useLocation();useEffect(()=>{aiUatApi.recordVisit(location.pathname,visitorId()).catch(()=>undefined)},[location.pathname]);return null}
+function Protected({authenticated,children}:{authenticated:boolean;children:React.ReactNode}){return authenticated?<>{children}</>:<Navigate to="/account?mode=login" replace/>}
 
-export default function App(){return <div className="app-shell"><AnalyticsTracker/><header className="topbar"><div className="brand"><div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>Requirement to release confidence</span></div></div><nav>{nav.map(([label,path])=><NavLink key={path} to={path} end={path==='/' } className={({isActive})=>isActive?'active':''}>{label}</NavLink>)}</nav></header><Routes><Route path="/" element={<OverviewPage/>}/><Route path="/technology" element={<TechnologyPage/>}/><Route path="/api-reference" element={<ApiReferencePage/>}/><Route path="/mission" element={<NewMissionPage/>}/><Route path="/dashboard" element={<DashboardPage/>}/><Route path="/execution" element={<ExecutionCenterPage/>}/><Route path="/performance" element={<PerformancePage/>}/><Route path="/automation-scripts" element={<AutomationScriptsPage/>}/><Route path="/test-management" element={<TestManagementPage/>}/><Route path="/agents" element={<AgentActivityPage/>}/><Route path="/healing" element={<HealingPage/>}/><Route path="/knowledge" element={<KnowledgePage/>}/><Route path="/account" element={<AccountPage/>}/></Routes><ProductAssistant/></div>}
+export default function App(){
+  const session=useQuery({queryKey:['current-user'],queryFn:aiUatApi.currentUser,retry:false,staleTime:30000});
+  const authenticated=!!session.data;
+  return <div className="app-shell"><AnalyticsTracker/><header className="topbar"><div className="brand"><div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>{authenticated?'Company UAT workspace':'Requirement to release confidence'}</span></div></div><nav>{authenticated?appNav.map(([label,path])=><NavLink key={path} to={path} end={path==='/' } className={({isActive})=>isActive?'active':''}>{label}</NavLink>):<><NavLink to="/" end className={({isActive})=>isActive?'active':''}>Product</NavLink><NavLink to="/account?mode=login">Sign in</NavLink><NavLink to="/account?mode=register">Register</NavLink></>}</nav></header>
+    <Routes>
+      <Route path="/" element={authenticated?<OverviewPage/>:<PublicLandingPage/>}/>
+      <Route path="/account" element={<AccountPage/>}/>
+      <Route path="/mission" element={<Protected authenticated={authenticated}><NewMissionPage/></Protected>}/>
+      <Route path="/dashboard" element={<Protected authenticated={authenticated}><DashboardPage/></Protected>}/>
+      <Route path="/execution" element={<Protected authenticated={authenticated}><ExecutionCenterPage/></Protected>}/>
+      <Route path="/performance" element={<Protected authenticated={authenticated}><PerformancePage/></Protected>}/>
+      <Route path="/automation-scripts" element={<Protected authenticated={authenticated}><AutomationScriptsPage/></Protected>}/>
+      <Route path="/test-management" element={<Protected authenticated={authenticated}><TestManagementPage/></Protected>}/>
+      <Route path="/knowledge" element={<Protected authenticated={authenticated}><KnowledgePage/></Protected>}/>
+      <Route path="/technology" element={<Protected authenticated={authenticated}><TechnologyPage/></Protected>}/>
+      <Route path="/api-reference" element={<Protected authenticated={authenticated}><ApiReferencePage/></Protected>}/>
+      <Route path="/agents" element={<Protected authenticated={authenticated}><AgentActivityPage/></Protected>}/>
+      <Route path="/healing" element={<Protected authenticated={authenticated}><HealingPage/></Protected>}/>
+    </Routes>{authenticated&&<ProductAssistant/>}</div>
+}
