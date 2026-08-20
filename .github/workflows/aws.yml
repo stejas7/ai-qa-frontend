@@ -199,7 +199,9 @@ jobs:
             exit 1
           fi
 
-          if ! curl --connect-timeout 3 --max-time 10 -fsS http://127.0.0.1/ | grep -qi '<div id="root"'; then
+          if ! curl --connect-timeout 3 --max-time 10 -kfsS \
+            --resolve auravis-uat.duckdns.org:443:127.0.0.1 \
+            https://auravis-uat.duckdns.org/ | grep -qi '<div id="root"'; then
             echo "ERROR: Local React health failed; restoring previous UI"
             sudo rm -rf "$DEPLOY_DIR"
             if [ -d "$PREV_DIR" ]; then sudo mv "$PREV_DIR" "$DEPLOY_DIR"; fi
