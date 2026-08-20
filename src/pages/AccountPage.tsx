@@ -1,0 +1,21 @@
+import { FormEvent, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { aiUatApi } from '../api/aiUat';
+
+export default function AccountPage(){
+  const qc=useQueryClient();
+  const session=useQuery({queryKey:['current-user'],queryFn:aiUatApi.currentUser,retry:false});
+  const [mode,setMode]=useState<'login'|'register'>('login');
+  const [companyName,setCompanyName]=useState(''); const [slug,setSlug]=useState('');
+  const [email,setEmail]=useState(''); const [password,setPassword]=useState('');
+
+  const login=useMutation({mutationFn:()=>aiUatApi.login(email,password),onSuccess:async()=>{setPassword('');await qc.invalidateQueries({queryKey:['current-user']})}});
+  const register=useMutation({mutationFn:async()=>{await aiUatApi.registerCompany({companyName,slug,adminEmail:email,password});return aiUatApi.login(email,password)},onSuccess:async()=>{setPassword('');await qc.invalidateQueries({queryKey:['current-user']})}});
+  const logout=useMutation({mutationFn:aiUatApi.logout,onSuccess:async()=>{await qc.invalidateQueries({queryKey:['current-user']})}});
+  const submit=(e:FormEvent)=>{e.preventDefault();mode==='login'?login.mutate():register.mutate()};
+  const error=login.error||register.error;
+
+  if(session.data){return <main className="page"><div className="eyebrow">4.0 • M14 IDENTITY</div><h1>Your account</h1><p className="lead">You are signed in to your company workspace.</p><section className="panel"><div className="metric-grid four compact"><article><strong>{session.data.email}</strong><span>User</span></article><article><strong>{session.data.role}</strong><span>Role</span></article><article><strong>{session.data.companyId.slice(0,8)}…</strong><span>Company</span></article><article><strong>Active</strong><span>Session</span></article></div><div className="form-actions"><button className="secondary-btn" onClick={()=>logout.mutate()} disabled={logout.isPending}>{logout.isPending?'Signing out…':'Sign out'}</button></div></section></main>}
+
+  return <main className="page"><div className="eyebrow">4.0 • M14 AUTHENTICATION</div><h1>{mode==='login'?'Sign in':'Register your company'}</h1><p className="lead">{mode==='login'?'Use your company account to access AI UAT Engineer.':'Create a company workspace and its first Company Admin account.'}</p><section className="panel"><div className="button-row"><button className={mode==='login'?'primary-btn':'secondary-btn'} type="button" onClick={()=>setMode('login')}>Sign in</button><button className={mode==='register'?'primary-btn':'secondary-btn'} type="button" onClick={()=>setMode('register')}>Register company</button></div><form onSubmit={submit}>{mode==='register'&&<div className="form-grid"><label className="field"><span>Company name</span><input value={companyName} onChange={e=>setCompanyName(e.target.value)} required placeholder="Acme Technologies"/></label><label className="field"><span>Company slug</span><input value={slug} onChange={e=>setSlug(e.target.value)} placeholder="acme-technologies"/><small>Optional. Generated from company name if left blank.</small></label></div>}<div className="form-grid"><label className="field"><span>Email</span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label><label className="field"><span>Password</span><input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={12} autoComplete={mode==='login'?'current-password':'new-password'}/><small>Minimum 12 characters.</small></label></div><div className="form-actions"><button className="primary-btn" disabled={login.isPending||register.isPending}>{login.isPending||register.isPending?'Please wait…':mode==='login'?'Sign in':'Create company & sign in'}</button></div>{error&&<p className="error-text">{error.message}</p>}</form></section><section className="panel"><div className="eyebrow">WHAT COMES NEXT</div><div className="example-flow"><span>Company</span><i>→</i><span>Company Admin</span><i>→</i><span>Users</span><i>→</i><span>Products</span><i>→</i><strong>Autonomous UAT</strong></div></section></main>
+}
