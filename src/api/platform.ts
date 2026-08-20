@@ -3,4 +3,5 @@ async function get<T>(path:string):Promise<T>{const r=await fetch(`${API_BASE}${
 export type PlatformCompany={id:string;name:string;slug:string;active:boolean;products:number;users:number};
 export type PlatformProduct={id:string;companyId:string;name:string;environment:string;authType:string;active:boolean};
 export type PlatformUser={id:string;companyId:string;email:string;role:string;active:boolean};
-export const platformApi={companies:()=>get<PlatformCompany[]>('/api/platform/companies'),products:()=>get<PlatformProduct[]>('/api/platform/products'),users:()=>get<PlatformUser[]>('/api/platform/users')};
+export type PlatformOperation={id:string;company:string;fileName:string;status:string;currentStage:string;createdAt:string;completedAt:string|null;durationMillis:number|null;failureSummary:string|null};
+export const platformApi={companies:()=>get<PlatformCompany[]>('/api/platform/companies'),products:()=>get<PlatformProduct[]>('/api/platform/products'),users:()=>get<PlatformUser[]>('/api/platform/users'),operations:()=>get<PlatformOperation[]>('/api/platform/operations')};
