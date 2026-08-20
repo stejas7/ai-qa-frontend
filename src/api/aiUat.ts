@@ -24,10 +24,16 @@ export type AutomationScript={id:string;companyId:string;productId:string;name:s
 export type GeneratedAutomation={testId:string;framework:string;language:string;fileName:string;code:string};
 export type TestTraceability={id:string;companyId:string;productId:string;requirementId:string;testCondition:string;testCaseId:string;automationScriptId?:string;riskLevel:'LOW'|'MEDIUM'|'HIGH';expectedResult:string;executionId?:string;actualResult?:string;status:'NOT_RUN'|'PASS'|'FAIL'|'BLOCKED';defectRef?:string;entryCriteriaMet:boolean;exitCriteriaMet:boolean;createdAt:string;updatedAt:string};
 export type TestCompletionSummary={total:number;passed:number;failed:number;notRun:number;highRisk:number;failedHighRisk:number;automatedLinks:number;automationCoveragePercent:number;exitCriteriaMet:boolean;releaseRecommendation:string};
+export type CurrentUser={id:string;companyId:string;email:string;role:string};
+export type CompanyRegistration={companyId:string;companyName:string;slug:string;adminEmail:string;role:string};
 
-async function request<T>(path:string,init?:RequestInit):Promise<T>{const response=await fetch(`${API_BASE}${path}`,{cache:'no-store',...init});if(!response.ok){let message=`API ${response.status}: ${path}`;try{const body=await response.json();message=body.error||message}catch{}throw new Error(message)}if(response.status===204)return undefined as T;return response.json()}
+async function request<T>(path:string,init?:RequestInit):Promise<T>{const response=await fetch(`${API_BASE}${path}`,{cache:'no-store',credentials:'include',...init});if(!response.ok){let message=`API ${response.status}: ${path}`;try{const body=await response.json();message=body.error||message}catch{}throw new Error(message)}if(response.status===204)return undefined as T;return response.json()}
 
 export const aiUatApi={
+  registerCompany:(payload:{companyName:string;slug?:string;adminEmail:string;password:string})=>request<CompanyRegistration>('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+  login:(email:string,password:string)=>request<CurrentUser>('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})}),
+  currentUser:()=>request<CurrentUser>('/api/auth/me'),
+  logout:()=>request<{loggedOut:boolean}>('/api/auth/logout',{method:'POST'}),
   runs:()=>request<PipelineRunSummary[]>('/api/pipeline/runs'),stats:()=>request<PipelineStats>('/api/pipeline/stats'),run:(id:string)=>request<PipelineRunDetail>(`/api/pipeline/runs/${id}`),
   upload:async(file:File,company:string,targetUrl:string)=>{const form=new FormData();form.append('file',file);if(company.trim())form.append('company',company.trim());if(targetUrl.trim())form.append('targetUrl',targetUrl.trim());form.append('executeAutomation','true');return request<{runId:string;status:string}>('/api/pipeline/upload',{method:'POST',body:form})},
   applications:()=>request<ApplicationTarget[]>('/api/applications?activeOnly=true'),addApplication:(target:ApplicationTarget)=>request<ApplicationTarget>('/api/applications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(target)}),
