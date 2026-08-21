@@ -2,6 +2,11 @@ import { useState } from 'react';
 
 const visuals = [
   {
+    title: 'Product overview',
+    subtitle: 'A light-format summary combining product flow, architecture, technology stack and learning roadmap',
+    src: '/blueprint-overview-light.svg'
+  },
+  {
     title: 'What the product does',
     subtitle: 'Requirement → AI design → RAG → Agents → Browser → Evidence → Release decision',
     src: '/blueprint-product-flow.svg'
@@ -59,8 +64,8 @@ export default function ProductBlueprintPage(){
       onClick={()=>setSelected(null)}
       style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(2,6,23,.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}
     >
-      <div onClick={(event)=>event.stopPropagation()} style={{position:'relative',width:'min(1500px,96vw)',maxHeight:'92vh',overflow:'auto',background:'#071426',borderRadius:'20px',boxShadow:'0 24px 80px rgba(0,0,0,.45)'}}>
-        <button type="button" onClick={()=>setSelected(null)} aria-label="Close visual" style={{position:'absolute',right:'14px',top:'14px',zIndex:2,width:'42px',height:'42px',borderRadius:'999px',border:'1px solid rgba(255,255,255,.25)',background:'rgba(15,23,42,.85)',color:'#fff',fontSize:'24px',cursor:'pointer'}}>×</button>
+      <div onClick={(event)=>event.stopPropagation()} style={{position:'relative',width:'min(1500px,96vw)',maxHeight:'92vh',overflow:'auto',background:'#ffffff',borderRadius:'20px',boxShadow:'0 24px 80px rgba(0,0,0,.45)'}}>
+        <button type="button" onClick={()=>setSelected(null)} aria-label="Close visual" style={{position:'absolute',right:'14px',top:'14px',zIndex:2,width:'42px',height:'42px',borderRadius:'999px',border:'1px solid rgba(15,23,42,.15)',background:'rgba(255,255,255,.94)',color:'#0f172a',fontSize:'24px',cursor:'pointer'}}>×</button>
         <img src={selected.src} alt={selected.title} style={{display:'block',width:'100%',height:'auto'}} />
       </div>
     </div>}
