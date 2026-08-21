@@ -6,6 +6,7 @@ import { platformApi } from '../api/platform';
 export default function PlatformPage(){
   const session=useQuery({queryKey:['current-user'],queryFn:aiUatApi.currentUser,retry:false});
   const enabled=session.data?.role==='SUPER_ADMIN'||session.data?.role==='PLATFORM_ADMIN';
+  const diagnostics=useQuery({queryKey:['platform-diagnostics'],queryFn:platformApi.diagnostics,enabled,refetchInterval:15000});
   const companies=useQuery({queryKey:['platform-companies'],queryFn:platformApi.companies,enabled});
   const products=useQuery({queryKey:['platform-products'],queryFn:platformApi.products,enabled});
   const users=useQuery({queryKey:['platform-users'],queryFn:platformApi.users,enabled});
@@ -22,17 +23,14 @@ export default function PlatformPage(){
   const userRows=users.data??[];
   const operationRows=operations.data??[];
   const auditRows=audit.data??[];
+  const health=diagnostics.data;
   const companyNameById=useMemo(()=>new Map(companyRows.map(c=>[c.id,c.name])),[companyRows]);
   const norm=search.trim().toLowerCase();
-  const activeCompanies=companyRows.filter(c=>c.active).length;
-  const activeUsers=userRows.filter(u=>u.active).length;
-  const running=operationRows.filter(o=>o.status==='RUNNING'||o.status==='QUEUED').length;
-  const failed=operationRows.filter(o=>o.status==='FAILED').length;
-  const needsAttention=companyRows.filter(c=>!c.active||c.products===0||c.users===0).length;
   const visibleCompanies=companyRows.filter(c=>(companyFilter==='ALL'||c.id===companyFilter)&&(!norm||`${c.name} ${c.slug}`.toLowerCase().includes(norm)));
   const visibleOperations=operationRows.filter(o=>(companyFilter==='ALL'||o.company===companyFilter)&&(!norm||`${o.fileName} ${o.status} ${o.currentStage} ${companyNameById.get(o.company)??o.company}`.toLowerCase().includes(norm)));
   const visibleAudit=auditRows.filter(a=>(companyFilter==='ALL'||a.scopeId===companyFilter||a.scopeId==='platform')&&(!norm||`${a.eventType} ${a.subject} ${a.detail}`.toLowerCase().includes(norm)));
   const fmtDuration=(ms:number|null)=>ms===null?'—':ms<1000?`${ms} ms`:`${Math.round(ms/1000)} s`;
+  const fmtUptime=(ms:number)=>{const mins=Math.floor(ms/60000);const hours=Math.floor(mins/60);const days=Math.floor(hours/24);return days>0?`${days}d ${hours%24}h`:hours>0?`${hours}h ${mins%60}m`:`${mins}m`;};
 
   return <main className="page">
     <div className="eyebrow">M21 • SUPER ADMIN</div>
@@ -40,13 +38,22 @@ export default function PlatformPage(){
     <p className="lead">See platform health, review companies, monitor UAT runs and trace important activity in one simple flow.</p>
 
     <section className="panel">
-      <div className="section-heading"><div><div className="eyebrow">STEP 1</div><h2>Platform health</h2></div><span className="status completed">LIVE</span></div>
+      <div className="section-heading"><div><div className="eyebrow">STEP 1</div><h2>Platform health</h2></div><span className={`status ${health?.health==='HEALTHY'?'completed':'failed'}`}>{health?.health??(diagnostics.isLoading?'CHECKING':'UNAVAILABLE')}</span></div>
+      {diagnostics.isError?<p className="error-text">Unable to load platform diagnostics.</p>:<>
       <div className="summary-strip">
-        <article><strong>{activeCompanies}/{companyRows.length}</strong><span>Active companies</span></article>
-        <article><strong>{activeUsers}/{userRows.length}</strong><span>Active users</span></article>
-        <article><strong>{running}</strong><span>UAT running</span></article>
-        <article><strong>{needsAttention+failed}</strong><span>Needs attention</span></article>
+        <article><strong>{health?`${health.memory.remainingMb} MB`:'—'}</strong><span>Memory remaining</span></article>
+        <article><strong>{health?.uatRuns.running??'—'}</strong><span>UAT running</span></article>
+        <article><strong>{health?.traffic.uniqueVisitors??'—'}</strong><span>Unique visitors</span></article>
+        <article><strong>{health?.tenants.products??'—'}</strong><span>Products</span></article>
       </div>
+      <div className="role-grid">
+        <article><strong>Memory</strong><p>{health?`${health.memory.usedMb} MB used of ${health.memory.maxMb} MB (${health.memory.usedPercent}%)`:'Loading…'}</p></article>
+        <article><strong>Uptime</strong><p>{health?fmtUptime(health.uptimeMs):'Loading…'}</p></article>
+        <article><strong>Traffic (24h)</strong><p>{health?`${health.traffic.visitsLast24h} visits • ${health.traffic.uniqueVisitorsLast24h} unique`:'Loading…'}</p></article>
+        <article><strong>Failures (24h)</strong><p>{health?`${health.uatRuns.failedLast24h} failed UAT runs`:'Loading…'}</p></article>
+        <article><strong>Companies / users</strong><p>{health?`${health.tenants.companies} companies • ${health.tenants.users} users`:'Loading…'}</p></article>
+        <article><strong>Products active</strong><p>{health?`${health.tenants.activeProducts}/${health.tenants.products} active`:'Loading…'}</p></article>
+      </div></>}
     </section>
 
     <section className="panel">
