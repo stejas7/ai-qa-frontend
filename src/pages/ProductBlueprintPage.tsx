@@ -37,9 +37,9 @@ export default function ProductBlueprintPage(){
   const [selected,setSelected]=useState<(typeof visuals)[number] | null>(null);
 
   return <main className="page">
-    <div className="eyebrow">PRODUCT • TECHNOLOGY • ARCHITECTURE • DATABASE • ROADMAP</div>
-    <h1>AI UAT Engineer — Product Blueprint</h1>
-    <p className="lead">A learning-focused visual guide to what the product does, how it is built, which technologies are used, how data is structured and how the roadmap evolved. Select any visual to open it larger.</p>
+    <div className="eyebrow">PRODUCT • ARCHITECTURE • TECHNOLOGY • DATABASE • ROADMAP</div>
+    <h1>How AI UAT Engineer Works</h1>
+    <p className="lead">A simple visual guide to what the product does, how the system is connected, which technologies are used, how the data is structured and how the product evolved. Select any visual to open it larger.</p>
 
     <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(420px,1fr))',gap:'20px',marginTop:'24px'}}>
       {visuals.map((visual)=><button
@@ -52,7 +52,7 @@ export default function ProductBlueprintPage(){
         <div style={{padding:'14px 6px 6px'}}>
           <strong style={{display:'block',fontSize:'18px'}}>{visual.title}</strong>
           <span style={{display:'block',marginTop:'6px',color:'#64748b',lineHeight:1.45}}>{visual.subtitle}</span>
-          <span style={{display:'inline-block',marginTop:'10px',fontWeight:700,color:'#2563eb'}}>Click to enlarge ↗</span>
+          <span style={{display:'inline-block',marginTop:'10px',fontWeight:700,color:'#2563eb'}}>Open visual ↗</span>
         </div>
       </button>)}
     </section>
@@ -62,9 +62,9 @@ export default function ProductBlueprintPage(){
       aria-modal="true"
       aria-label={selected.title}
       onClick={()=>setSelected(null)}
-      style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(2,6,23,.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}
+      style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(15,23,42,.55)',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}
     >
-      <div onClick={(event)=>event.stopPropagation()} style={{position:'relative',width:'min(1500px,96vw)',maxHeight:'92vh',overflow:'auto',background:'#ffffff',borderRadius:'20px',boxShadow:'0 24px 80px rgba(0,0,0,.45)'}}>
+      <div onClick={(event)=>event.stopPropagation()} style={{position:'relative',width:'min(1500px,96vw)',maxHeight:'92vh',overflow:'auto',background:'#ffffff',borderRadius:'20px',boxShadow:'0 24px 80px rgba(0,0,0,.25)'}}>
         <button type="button" onClick={()=>setSelected(null)} aria-label="Close visual" style={{position:'absolute',right:'14px',top:'14px',zIndex:2,width:'42px',height:'42px',borderRadius:'999px',border:'1px solid rgba(15,23,42,.15)',background:'rgba(255,255,255,.94)',color:'#0f172a',fontSize:'24px',cursor:'pointer'}}>×</button>
         <img src={selected.src} alt={selected.title} style={{display:'block',width:'100%',height:'auto'}} />
       </div>
