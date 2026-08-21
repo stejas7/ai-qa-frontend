@@ -6,6 +6,9 @@ import { aiUatApi, ssoLoginUrl } from '../api/aiUat';
 const DEMO_EMAIL='demo.viewer@aiuat.example';
 const DEMO_PASSWORD='DemoWalkthrough2026!';
 
+const GoogleMark=()=> <span aria-hidden="true" style={{width:22,height:22,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:16,fontFamily:'Arial,sans-serif',color:'#4285F4',background:'#fff'}}>G</span>;
+const GitHubMark=()=> <span aria-hidden="true" style={{width:22,height:22,borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:13,border:'2px solid currentColor'}}>GH</span>;
+
 export default function PublicLoginPage(){
   const qc=useQueryClient();
   const navigate=useNavigate();
@@ -21,6 +24,8 @@ export default function PublicLoginPage(){
   const googleEnabled=sso.data?.providers.includes('google')??false;
   const githubEnabled=sso.data?.providers.includes('github')??false;
   const error=login.error||register.error;
+
+  const ssoBase:React.CSSProperties={display:'flex',alignItems:'center',justifyContent:'center',gap:10,minHeight:48,padding:'0 18px',borderRadius:10,fontWeight:700,textDecoration:'none',flex:'1 1 220px',maxWidth:280,transition:'transform .15s ease, box-shadow .15s ease, opacity .15s ease'};
 
   return <main className="page auth-page">
     <section className="hero-grid">
@@ -40,7 +45,10 @@ export default function PublicLoginPage(){
           <button className="primary-btn" disabled={login.isPending||register.isPending}>{login.isPending||register.isPending?'Please wait…':showRegistration?'Create workspace':'Sign in'}</button>
           {error&&<p className="error-text">{error.message}</p>}
         </form>
-        {!showRegistration&&<><p className="muted" style={{textAlign:'center',margin:'16px 0 8px'}}>or continue with</p><div className="button-row" style={{justifyContent:'center'}}><a className="secondary-btn" href={ssoLoginUrl('google')} aria-disabled={!googleEnabled}>Continue with Google</a><a className="secondary-btn" href={ssoLoginUrl('github')} aria-disabled={!githubEnabled}>Continue with GitHub</a></div>{!sso.isLoading&&(!googleEnabled||!githubEnabled)&&<p className="muted" style={{fontSize:12}}>SSO buttons stay visible for the demo. A provider works when its OAuth client is active in the backend.</p>}</>}
+        {!showRegistration&&<><p className="muted" style={{textAlign:'center',margin:'18px 0 12px'}}>or continue with</p><div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
+          <a href={googleEnabled?ssoLoginUrl('google'):undefined} aria-disabled={!googleEnabled} style={{...ssoBase,background:'#fff',color:'#202124',border:'1px solid #dadce0',boxShadow:'0 1px 2px rgba(60,64,67,.12)',opacity:googleEnabled?1:.55,cursor:googleEnabled?'pointer':'not-allowed'}}><GoogleMark/><span>Continue with Google</span></a>
+          <a href={githubEnabled?ssoLoginUrl('github'):undefined} aria-disabled={!githubEnabled} style={{...ssoBase,background:'#24292f',color:'#fff',border:'1px solid #24292f',boxShadow:'0 1px 2px rgba(0,0,0,.2)',opacity:githubEnabled?1:.55,cursor:githubEnabled?'pointer':'not-allowed'}}><GitHubMark/><span>Continue with GitHub</span></a>
+        </div>{!sso.isLoading&&(!googleEnabled||!githubEnabled)&&<p className="muted" style={{fontSize:12,textAlign:'center'}}>SSO buttons stay visible for the demo. A provider works when its OAuth client is active in the backend.</p>}</>}
         <p className="muted" style={{marginTop:16}}>{showRegistration?'Already registered? ':'New company? '}<button type="button" className="link-button" onClick={()=>setShowRegistration(v=>!v)}>{showRegistration?'Sign in instead':'Create your workspace from this page'}</button></p>
       </section>
     </section>
