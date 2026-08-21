@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PUBLIC_BASE_URL: https://auravis-uat.duckdns.org
+  PUBLIC_BASE_URL: https://ai-uat.duckdns.org
   DEPLOY_DIR: /var/www/auravis-frontend
 
 jobs:
@@ -133,16 +133,16 @@ jobs:
           cat >/tmp/ai-qa-react <<'EOF'
           server {
               listen 80;
-              server_name auravis-uat.duckdns.org;
+              server_name ai-uat.duckdns.org;
               return 301 https://$host$request_uri;
           }
 
           server {
               listen 443 ssl;
-              server_name auravis-uat.duckdns.org;
+              server_name ai-uat.duckdns.org;
 
-              ssl_certificate /etc/letsencrypt/live/auravis-uat.duckdns.org/fullchain.pem;
-              ssl_certificate_key /etc/letsencrypt/live/auravis-uat.duckdns.org/privkey.pem;
+              ssl_certificate /etc/letsencrypt/live/ai-uat.duckdns.org/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/ai-uat.duckdns.org/privkey.pem;
 
               root /var/www/auravis-frontend;
               index index.html;
@@ -200,8 +200,8 @@ jobs:
           fi
 
           if ! curl --connect-timeout 3 --max-time 10 -kfsS \
-            --resolve auravis-uat.duckdns.org:443:127.0.0.1 \
-            https://auravis-uat.duckdns.org/ | grep -qi '<div id="root"'; then
+            --resolve ai-uat.duckdns.org:443:127.0.0.1 \
+            https://ai-uat.duckdns.org/ | grep -qi '<div id="root"'; then
             echo "ERROR: Local React health failed; restoring previous UI"
             sudo rm -rf "$DEPLOY_DIR"
             if [ -d "$PREV_DIR" ]; then sudo mv "$PREV_DIR" "$DEPLOY_DIR"; fi
