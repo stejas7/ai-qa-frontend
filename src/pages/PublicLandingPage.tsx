@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ProductExplainer from '../components/ProductExplainer';
 
 const steps=[
   ['1','Tell us what changed','Choose your product and add the business requirement or feature you want to validate.'],
@@ -41,6 +42,8 @@ export default function PublicLandingPage(){
       </div>
     </section>
 
+    <ProductExplainer/>
+
     <section className="panel">
       <div className="eyebrow">HOW IT WORKS</div>
       <h2>Three steps a non-technical stakeholder can follow</h2>
@@ -77,7 +80,7 @@ export default function PublicLandingPage(){
     <section className="panel">
       <div className="eyebrow">WANT THE TECHNICAL DETAIL?</div>
       <h2>Open the Product Blueprint</h2>
-      <p className="muted">The Product Blueprint keeps the technical learning material separate from this simple product explanation. It includes product flow, architecture, technology stack, database structure and the M1–M20 learning roadmap.</p>
+      <p className="muted">The Product Blueprint keeps the technical learning material separate from this simple product explanation. It includes product flow, architecture, technology stack, database structure and the M1–M30 learning roadmap.</p>
       <div className="button-row">
         <Link className="primary-button" to="/product-blueprint">Open Product Blueprint</Link>
         <Link className="secondary-button" to="/login">Sign in</Link>
