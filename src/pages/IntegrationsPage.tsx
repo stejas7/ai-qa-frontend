@@ -14,6 +14,7 @@ export default function IntegrationsPage(){
   const enterpriseCatalog=useQuery({queryKey:['enterprise-integration-catalog'],queryFn:enterpriseIntegrationsApi.catalog,enabled:!!session.data,retry:false});
   const integrations=useQuery({queryKey:['integrations'],queryFn:integrationsApi.list,enabled:!!session.data,retry:false});
   const deliveries=useQuery({queryKey:['integration-deliveries'],queryFn:integrationsApi.deliveries,enabled:!!session.data,retry:false});
+  const plan=useMutation({mutationFn:(input:{providerKey:string;action:string;eventType:string})=>enterpriseIntegrationsApi.plan(input)});
   const create=useMutation({mutationFn:()=>integrationsApi.create({name,url,eventTypes:selected}),onSuccess:async()=>{setName('');setUrl('');await qc.invalidateQueries({queryKey:['integrations']})}});
   const active=useMutation({mutationFn:({id,value}:{id:string;value:boolean})=>integrationsApi.setActive(id,value),onSuccess:()=>qc.invalidateQueries({queryKey:['integrations']})});
   const test=useMutation({mutationFn:(id:string)=>integrationsApi.test(id),onSuccess:async()=>{await qc.invalidateQueries({queryKey:['integration-deliveries']})}});
@@ -21,12 +22,14 @@ export default function IntegrationsPage(){
   const toggle=(event:string)=>setSelected(v=>v.includes(event)?v.filter(x=>x!==event):[...v,event]);
 
   return <main className="page">
-    <div className="eyebrow">M25–M26 + M35 • INTEGRATIONS</div><h1>Integrations</h1><p className="lead">Connect AI UAT Engineer to secure HTTPS endpoints and discover enterprise integration capabilities for Jira, GitHub, Slack and Microsoft Teams.</p>
+    <div className="eyebrow">M25–M26 + M35–M36 • INTEGRATIONS</div><h1>Integrations</h1><p className="lead">Connect AI UAT Engineer to secure HTTPS endpoints, inspect enterprise provider capabilities and preview tenant-safe execution plans.</p>
 
-    <section className="panel"><div className="section-heading"><div><div className="eyebrow">M35 • ENTERPRISE PROVIDERS</div><h2>Provider catalog</h2></div><span>{enterpriseCatalog.data?.length??0} supported</span></div>
+    <section className="panel"><div className="section-heading"><div><div className="eyebrow">M35–M36 • ENTERPRISE PROVIDERS</div><h2>Provider catalog & plan preview</h2></div><span>{enterpriseCatalog.data?.length??0} supported</span></div>
       {enterpriseCatalog.isError&&<p className="error-text">{enterpriseCatalog.error.message}</p>}
-      <div className="stack-list">{enterpriseCatalog.data?.map(provider=><div className="list-card" key={provider.key}><div><strong>{provider.displayName}</strong><small>{provider.category}<br/>Auth: {provider.authenticationMode}<br/>Events: {provider.supportedEvents.join(' • ')}</small></div><div><small>{provider.supportedActions.join(' • ')}</small></div></div>)}</div>
-      <p className="muted">The catalog exposes capability metadata only. Tokens, OAuth credentials and provider secrets are never returned to the browser.</p>
+      <div className="stack-list">{enterpriseCatalog.data?.map(provider=><div className="list-card" key={provider.key}><div><strong>{provider.displayName}</strong><small>{provider.category}<br/>Auth: {provider.authenticationMode}<br/>Events: {provider.supportedEvents.join(' • ')}</small></div><div><small>{provider.supportedActions.join(' • ')}</small>{canManage&&<div className="button-row"><button className="secondary-btn" disabled={plan.isPending} onClick={()=>plan.mutate({providerKey:provider.key,action:provider.supportedActions[0],eventType:provider.supportedEvents[0]})}>Preview plan</button></div>}</div></div>)}</div>
+      {plan.data&&<div className="list-card"><div><strong>{plan.data.providerName} plan</strong><small>{plan.data.eventType} → {plan.data.action}<br/>Tenant scope: {plan.data.tenantScope}<br/>Credential state: {plan.data.credentialState}</small></div><span className={`status ${plan.data.executable?'completed':'failed'}`}>{plan.data.executable?'EXECUTABLE':'CONFIGURATION REQUIRED'}</span></div>}
+      {plan.isError&&<p className="error-text">{plan.error.message}</p>}
+      <p className="muted">The catalog and plan expose capability metadata only. Tokens, OAuth credentials and provider secrets are never returned to the browser.</p>
     </section>
 
     <section className="panel"><div className="section-heading"><div><div className="eyebrow">STEP 1</div><h2>Register endpoint</h2></div></div>
