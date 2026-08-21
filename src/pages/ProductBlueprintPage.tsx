@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
-const visualVersion='20260821-light-v2';
+const visualVersion='20260821-m50-v1';
 const visuals = [
   { title: 'Product overview', subtitle: 'A light-format summary combining product flow, architecture, technology stack and learning roadmap', src: `/blueprint-overview-light.svg?v=${visualVersion}` },
   { title: 'What the product does', subtitle: 'Requirement → AI design → RAG → Agents → Browser → Evidence → Release decision', src: `/blueprint-product-flow.svg?v=${visualVersion}` },
   { title: 'System architecture', subtitle: 'A simple end-to-end view of UI, backend, AI, automation, data and AWS runtime', src: `/blueprint-architecture.svg?v=${visualVersion}` },
   { title: 'Technology stack', subtitle: 'The main technologies grouped by the role they play in the product', src: `/blueprint-technology.svg?v=${visualVersion}` },
   { title: 'Database structure', subtitle: 'Simplified ER view of companies, users, products, requirements, runs, test cases, evidence, RAG knowledge, analytics and release decisions', src: `/blueprint-database.svg?v=${visualVersion}` },
-  { title: 'Learning roadmap', subtitle: 'How the project evolved from M1 through M20 toward 4.0 Stable', src: `/blueprint-roadmap.svg?v=${visualVersion}` }
+  { title: 'Learning roadmap', subtitle: 'M1 through M50: foundation, enterprise platform, 100-agent workforce, governance, reliability and autonomous release intelligence', src: `/blueprint-roadmap.svg?v=${visualVersion}` }
 ] as const;
 
 export default function ProductBlueprintPage(){
@@ -15,7 +15,7 @@ export default function ProductBlueprintPage(){
   return <main className="page">
     <div className="eyebrow">PRODUCT • ARCHITECTURE • TECHNOLOGY • DATABASE • ROADMAP</div>
     <h1>How AI UAT Engineer Works</h1>
-    <p className="lead">A simple visual guide to what the product does, how the system is connected, which technologies are used, how the data is structured and how the product evolved. Select any visual to open it larger.</p>
+    <p className="lead">A simple visual guide to what the product does, how the system is connected, which technologies are used, how the data is structured and how the product evolved through M50. Select any visual to open it larger.</p>
     <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(420px,1fr))',gap:'20px',marginTop:'24px'}}>
       {visuals.map((visual)=><button key={visual.src} type="button" onClick={()=>setSelected(visual)} style={{textAlign:'left',background:'#fff',border:'1px solid #dbe4ef',borderRadius:'18px',padding:'14px',cursor:'zoom-in',boxShadow:'0 8px 24px rgba(15,23,42,.06)'}}>
         <img src={visual.src} alt={visual.title} style={{display:'block',width:'100%',height:'auto',borderRadius:'13px',background:'#fff'}} />
