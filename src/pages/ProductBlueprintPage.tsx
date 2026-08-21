@@ -17,6 +17,11 @@ const visuals = [
     src: '/blueprint-technology.svg'
   },
   {
+    title: 'Database structure',
+    subtitle: 'Simplified ER view of companies, users, products, requirements, runs, test cases, evidence, RAG knowledge, analytics and release decisions',
+    src: '/blueprint-database.svg'
+  },
+  {
     title: 'Learning roadmap',
     subtitle: 'How the project evolved from M1 through M20 toward 4.0 Stable',
     src: '/blueprint-roadmap.svg'
@@ -27,9 +32,9 @@ export default function ProductBlueprintPage(){
   const [selected,setSelected]=useState<(typeof visuals)[number] | null>(null);
 
   return <main className="page">
-    <div className="eyebrow">PRODUCT • TECHNOLOGY • ARCHITECTURE • ROADMAP</div>
+    <div className="eyebrow">PRODUCT • TECHNOLOGY • ARCHITECTURE • DATABASE • ROADMAP</div>
     <h1>AI UAT Engineer — Product Blueprint</h1>
-    <p className="lead">A learning-focused visual guide to what the product does, how it is built, which technologies are used and how the roadmap evolved. Select any visual to open it larger.</p>
+    <p className="lead">A learning-focused visual guide to what the product does, how it is built, which technologies are used, how data is structured and how the roadmap evolved. Select any visual to open it larger.</p>
 
     <section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(420px,1fr))',gap:'20px',marginTop:'24px'}}>
       {visuals.map((visual)=><button
