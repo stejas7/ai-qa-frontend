@@ -26,7 +26,8 @@ export type TestTraceability={id:string;companyId:string;productId:string;requir
 export type TestCompletionSummary={total:number;passed:number;failed:number;notRun:number;highRisk:number;failedHighRisk:number;automatedLinks:number;automationCoveragePercent:number;exitCriteriaMet:boolean;releaseRecommendation:string};
 export type CurrentUser={id:string;companyId:string;email:string;role:string};
 export type CompanyRegistration={companyId:string;companyName:string;slug:string;adminEmail:string;role:string};
-export type CompanyUser={id:string;companyId:string;email:string;role:'COMPANY_ADMIN'|'QA_MANAGER'|'TESTER'|'VIEWER'|string;active:boolean};
+export type CompanyUserRole='COMPANY_ADMIN'|'QA_MANAGER'|'TESTER'|'VIEWER';
+export type CompanyUser={id:string;companyId:string;email:string;role:CompanyUserRole|string;active:boolean};
 
 async function request<T>(path:string,init?:RequestInit):Promise<T>{const response=await fetch(`${API_BASE}${path}`,{cache:'no-store',credentials:'include',...init});if(!response.ok){let message=`API ${response.status}: ${path}`;try{const body=await response.json();message=body.error||message}catch{}throw new Error(message)}if(response.status===204)return undefined as T;return response.json()}
 
@@ -36,7 +37,7 @@ export const aiUatApi={
   currentUser:()=>request<CurrentUser>('/api/auth/me'),
   logout:async()=>{const result=await request<{loggedOut:boolean}>('/api/auth/logout',{method:'POST'});window.location.assign('/');return result},
   ssoProviders:()=>request<{providers:string[]}>('/api/auth/sso/providers'),
-  companyUsers:()=>request<CompanyUser[]>('/api/company/users'),createCompanyUser:(payload:{email:string;password:string;role:'QA_MANAGER'|'TESTER'|'VIEWER'})=>request<CompanyUser>('/api/company/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),deactivateCompanyUser:(id:string)=>request<CompanyUser>(`/api/company/users/${id}/deactivate`,{method:'PATCH'}),
+  companyUsers:()=>request<CompanyUser[]>('/api/company/users'),createCompanyUser:(payload:{email:string;password:string;role:CompanyUserRole})=>request<CompanyUser>('/api/company/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),deactivateCompanyUser:(id:string)=>request<CompanyUser>(`/api/company/users/${id}/deactivate`,{method:'PATCH'}),
   runs:()=>request<PipelineRunSummary[]>('/api/pipeline/runs'),stats:()=>request<PipelineStats>('/api/pipeline/stats'),run:(id:string)=>request<PipelineRunDetail>(`/api/pipeline/runs/${id}`),
   uploadTenantUat:async(file:File,targetId:string)=>{const form=new FormData();form.append('file',file);form.append('targetId',targetId);return request<{runId:string;status:string}>('/api/company/uat/upload',{method:'POST',body:form})},
   upload:async(file:File,company:string,targetUrl:string)=>{const form=new FormData();form.append('file',file);if(company.trim())form.append('company',company.trim());if(targetUrl.trim())form.append('targetUrl',targetUrl.trim());form.append('executeAutomation','true');return request<{runId:string;status:string}>('/api/pipeline/upload',{method:'POST',body:form})},
