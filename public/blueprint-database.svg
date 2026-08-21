@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <defs>
+    <style>
+      .bg{fill:#071426}.panel{fill:#0d1d32;stroke:#27476d;stroke-width:2}.title{fill:#fff;font:700 38px Arial}.sub{fill:#9fb6d0;font:20px Arial}.h{fill:#7dd3fc;font:700 22px Arial}.t{fill:#e8f1fb;font:18px Arial}.small{fill:#9fb6d0;font:16px Arial}.line{stroke:#4aa3df;stroke-width:3;fill:none}.key{fill:#86efac;font:700 15px Arial}
+    </style>
+  </defs>
+  <rect class="bg" width="1400" height="900" rx="28"/>
+  <text class="title" x="60" y="70">AI UAT Engineer — Database Structure</text>
+  <text class="sub" x="60" y="108">Simplified learning view of the main persisted entities and how UAT data flows through PostgreSQL</text>
+
+  <rect class="panel" x="70" y="170" width="250" height="150" rx="18"/>
+  <text class="h" x="95" y="210">COMPANY</text>
+  <text class="key" x="95" y="242">PK company_id</text>
+  <text class="t" x="95" y="272">name</text><text class="t" x="95" y="298">status / created_at</text>
+
+  <rect class="panel" x="390" y="150" width="250" height="190" rx="18"/>
+  <text class="h" x="415" y="190">USERS</text>
+  <text class="key" x="415" y="222">PK user_id</text>
+  <text class="t" x="415" y="250">FK company_id</text><text class="t" x="415" y="278">email / role</text><text class="t" x="415" y="306">password_hash / active</text>
+
+  <rect class="panel" x="710" y="170" width="250" height="150" rx="18"/>
+  <text class="h" x="735" y="210">PRODUCTS</text>
+  <text class="key" x="735" y="242">PK product_id</text>
+  <text class="t" x="735" y="272">FK company_id</text><text class="t" x="735" y="298">name / base_url</text>
+
+  <rect class="panel" x="1030" y="170" width="290" height="150" rx="18"/>
+  <text class="h" x="1055" y="210">REQUIREMENTS</text>
+  <text class="key" x="1055" y="242">PK requirement_id</text>
+  <text class="t" x="1055" y="272">FK product_id</text><text class="t" x="1055" y="298">title / description / status</text>
+
+  <rect class="panel" x="200" y="430" width="260" height="170" rx="18"/>
+  <text class="h" x="225" y="470">UAT MISSIONS / RUNS</text>
+  <text class="key" x="225" y="502">PK run_id</text>
+  <text class="t" x="225" y="532">FK requirement_id</text><text class="t" x="225" y="558">status / started_at</text><text class="t" x="225" y="584">completed_at</text>
+
+  <rect class="panel" x="570" y="430" width="260" height="170" rx="18"/>
+  <text class="h" x="595" y="470">TEST CASES</text>
+  <text class="key" x="595" y="502">PK test_case_id</text>
+  <text class="t" x="595" y="532">FK run_id</text><text class="t" x="595" y="558">steps / expected_result</text><text class="t" x="595" y="584">execution_status</text>
+
+  <rect class="panel" x="940" y="430" width="260" height="170" rx="18"/>
+  <text class="h" x="965" y="470">EVIDENCE</text>
+  <text class="key" x="965" y="502">PK evidence_id</text>
+  <text class="t" x="965" y="532">FK test_case_id</text><text class="t" x="965" y="558">screenshot / logs</text><text class="t" x="965" y="584">result / captured_at</text>
+
+  <rect class="panel" x="170" y="690" width="300" height="140" rx="18"/>
+  <text class="h" x="195" y="730">KNOWLEDGE / RAG</text>
+  <text class="key" x="195" y="762">PK knowledge_id</text>
+  <text class="t" x="195" y="792">product docs / chunks / metadata</text>
+
+  <rect class="panel" x="550" y="690" width="300" height="140" rx="18"/>
+  <text class="h" x="575" y="730">RELEASE DECISIONS</text>
+  <text class="key" x="575" y="762">PK decision_id</text>
+  <text class="t" x="575" y="792">FK run_id • score / verdict / reason</text>
+
+  <rect class="panel" x="930" y="690" width="300" height="140" rx="18"/>
+  <text class="h" x="955" y="730">ANALYTICS / VISITORS</text>
+  <text class="key" x="955" y="762">PK event_id</text>
+  <text class="t" x="955" y="792">visitor_id / path / timestamp</text>
+
+  <path class="line" d="M320 245 H390"/>
+  <path class="line" d="M640 245 H710"/>
+  <path class="line" d="M960 245 H1030"/>
+  <path class="line" d="M1175 320 V380 H330 V430"/>
+  <path class="line" d="M460 515 H570"/>
+  <path class="line" d="M830 515 H940"/>
+  <path class="line" d="M330 600 V650 H700 V690"/>
+  <path class="line" d="M320 690 V640 H835 V320"/>
+
+  <text class="small" x="60" y="865">Simplified ER view for learning — implementation may contain additional operational tables and fields.</text>
+</svg>
