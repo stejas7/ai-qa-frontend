@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="500" viewBox="0 0 1400 500">
+  <rect width="1400" height="500" rx="28" fill="#081426"/>
+  <text x="70" y="78" fill="#ffffff" font-family="Arial,sans-serif" font-size="38" font-weight="700">4. Learning roadmap</text>
+  <text x="70" y="118" fill="#9fb4d3" font-family="Arial,sans-serif" font-size="20">M1 → M20 → 4.0 Stable</text>
+  <g font-family="Arial,sans-serif" text-anchor="middle">
+    <g transform="translate(80 185)"><rect width="260" height="160" rx="24" fill="#10233f" stroke="#2dd4bf"/><text x="130" y="48" fill="#2dd4bf" font-size="20" font-weight="700">M1–M5</text><text x="130" y="82" fill="#fff" font-size="22" font-weight="700">FOUNDATION</text><text x="130" y="116" fill="#b9c8dc" font-size="16">Mission • RAG • Test design</text><text x="130" y="142" fill="#b9c8dc" font-size="16">Automation basics</text></g>
+    <text x="370" y="275" fill="#6ea8fe" font-size="38">→</text>
+    <g transform="translate(410 185)"><rect width="260" height="160" rx="24" fill="#10233f" stroke="#60a5fa"/><text x="130" y="48" fill="#60a5fa" font-size="20" font-weight="700">M6–M10</text><text x="130" y="82" fill="#fff" font-size="22" font-weight="700">INTELLIGENCE</text><text x="130" y="116" fill="#b9c8dc" font-size="16">Agents • healing • regression</text><text x="130" y="142" fill="#b9c8dc" font-size="16">CI quality gates</text></g>
+    <text x="700" y="275" fill="#6ea8fe" font-size="38">→</text>
+    <g transform="translate(740 185)"><rect width="260" height="160" rx="24" fill="#261c3d" stroke="#a78bfa"/><text x="130" y="48" fill="#a78bfa" font-size="20" font-weight="700">M11–M15</text><text x="130" y="82" fill="#fff" font-size="22" font-weight="700">PLATFORM</text><text x="130" y="116" fill="#b9c8dc" font-size="16">Tenant • users • security</text><text x="130" y="142" fill="#b9c8dc" font-size="16">Product workflow • admin</text></g>
+    <text x="1030" y="275" fill="#6ea8fe" font-size="38">→</text>
+    <g transform="translate(1070 165)"><rect width="250" height="200" rx="24" fill="#123525" stroke="#22c55e"/><text x="125" y="48" fill="#22c55e" font-size="20" font-weight="700">M16–M20</text><text x="125" y="82" fill="#fff" font-size="22" font-weight="700">ENTERPRISE UAT</text><text x="125" y="116" fill="#b9c8dc" font-size="16">SSO • analytics • stabilization</text><text x="125" y="142" fill="#b9c8dc" font-size="16">Security • scale • self-UAT</text><rect x="32" y="158" width="186" height="30" rx="15" fill="#1f7a45"/><text x="125" y="179" fill="#fff" font-size="14" font-weight="700">TARGET: 4.0 STABLE</text></g>
+  </g>
+  <text x="700" y="430" text-anchor="middle" fill="#d8e5f8" font-family="Arial,sans-serif" font-size="18">Built as a learning project: ship → observe → fix → understand → improve.</text>
+</svg>
