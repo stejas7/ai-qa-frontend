@@ -4,57 +4,83 @@ import { aiUatApi } from '../api/aiUat';
 import { platformApi } from '../api/platform';
 
 export default function PlatformPage(){
- const session=useQuery({queryKey:['current-user'],queryFn:aiUatApi.currentUser,retry:false});
- const enabled=session.data?.role==='PLATFORM_ADMIN';
- const companies=useQuery({queryKey:['platform-companies'],queryFn:platformApi.companies,enabled});
- const products=useQuery({queryKey:['platform-products'],queryFn:platformApi.products,enabled});
- const users=useQuery({queryKey:['platform-users'],queryFn:platformApi.users,enabled});
- const operations=useQuery({queryKey:['platform-operations'],queryFn:platformApi.operations,enabled,refetchInterval:10000});
- const failures=useQuery({queryKey:['platform-failures'],queryFn:platformApi.failures,enabled,refetchInterval:10000});
- const performance=useQuery({queryKey:['platform-performance'],queryFn:platformApi.performance,enabled,refetchInterval:30000});
- const audit=useQuery({queryKey:['platform-audit'],queryFn:platformApi.audit,enabled,refetchInterval:30000});
- const [search,setSearch]=useState('');
- const [companyFilter,setCompanyFilter]=useState('ALL');
- const [statusFilter,setStatusFilter]=useState<'ALL'|'ACTIVE'|'INACTIVE'>('ALL');
+  const session=useQuery({queryKey:['current-user'],queryFn:aiUatApi.currentUser,retry:false});
+  const enabled=session.data?.role==='SUPER_ADMIN'||session.data?.role==='PLATFORM_ADMIN';
+  const diagnostics=useQuery({queryKey:['platform-diagnostics'],queryFn:platformApi.diagnostics,enabled,refetchInterval:15000});
+  const companies=useQuery({queryKey:['platform-companies'],queryFn:platformApi.companies,enabled});
+  const products=useQuery({queryKey:['platform-products'],queryFn:platformApi.products,enabled});
+  const users=useQuery({queryKey:['platform-users'],queryFn:platformApi.users,enabled});
+  const operations=useQuery({queryKey:['platform-operations'],queryFn:platformApi.operations,enabled,refetchInterval:10000});
+  const audit=useQuery({queryKey:['platform-audit'],queryFn:platformApi.audit,enabled,refetchInterval:30000});
+  const [search,setSearch]=useState('');
+  const [companyFilter,setCompanyFilter]=useState('ALL');
 
- if(session.isLoading)return <main className="page"><p>Loading platform oversight…</p></main>;
- if(!enabled)return <main className="page"><div className="eyebrow">M20 • PLATFORM OVERSIGHT</div><h1>Platform owner access required</h1><p className="lead">This read-only console is restricted to PLATFORM_ADMIN.</p></main>;
+  if(session.isLoading)return <main className="page"><p>Loading platform…</p></main>;
+  if(!enabled)return <main className="page"><div className="eyebrow">M21 • PLATFORM ADMIN</div><h1>Super Admin access required</h1><p className="lead">This workspace is available only to the platform owner.</p></main>;
 
- const companyRows=companies.data??[],productRows=products.data??[],userRows=users.data??[],operationRows=operations.data??[],failureRows=failures.data??[],auditRows=audit.data??[];
- const companyNameById=useMemo(()=>new Map(companyRows.map(c=>[c.id,c.name])),[companyRows]);
- const activeCompanies=companyRows.filter(x=>x.active).length,activeProducts=productRows.filter(x=>x.active).length,activeUsers=userRows.filter(x=>x.active).length;
- const authTypes=Array.from(new Set(productRows.map(p=>p.authType))).sort(),environments=Array.from(new Set(productRows.map(p=>p.environment))).sort(),roles=Array.from(new Set(userRows.map(u=>u.role))).sort();
- const norm=search.trim().toLowerCase();
- const matchesStatus=(active:boolean)=>statusFilter==='ALL'||(statusFilter==='ACTIVE'&&active)||(statusFilter==='INACTIVE'&&!active);
- const visibleCompanies=companyRows.filter(c=>matchesStatus(c.active)&&(!norm||`${c.name} ${c.slug}`.toLowerCase().includes(norm)));
- const visibleProducts=productRows.filter(p=>matchesStatus(p.active)&&(companyFilter==='ALL'||p.companyId===companyFilter)&&(!norm||`${p.name} ${p.environment} ${p.authType} ${companyNameById.get(p.companyId)??''}`.toLowerCase().includes(norm)));
- const visibleUsers=userRows.filter(u=>matchesStatus(u.active)&&(companyFilter==='ALL'||u.companyId===companyFilter)&&(!norm||`${u.email} ${u.role} ${companyNameById.get(u.companyId)??''}`.toLowerCase().includes(norm)));
- const visibleOperations=operationRows.filter(o=>(companyFilter==='ALL'||o.company===companyFilter)&&(!norm||`${o.fileName} ${o.status} ${o.currentStage} ${companyNameById.get(o.company)??o.company}`.toLowerCase().includes(norm)));
- const visibleFailures=failureRows.filter(f=>(companyFilter==='ALL'||f.company===companyFilter)&&(!norm||`${f.fileName} ${f.failedStage} ${f.diagnostic} ${companyNameById.get(f.company)??f.company}`.toLowerCase().includes(norm)));
- const visibleAudit=auditRows.filter(a=>(companyFilter==='ALL'||a.scopeId===companyFilter||a.scopeId==='platform')&&(!norm||`${a.eventType} ${a.subject} ${a.detail} ${companyNameById.get(a.scopeId)??a.scopeId}`.toLowerCase().includes(norm)));
- const companiesNeedingAttention=companyRows.filter(c=>!c.active||c.products===0||c.users===0);
- const running=operationRows.filter(o=>o.status==='RUNNING'||o.status==='QUEUED').length,completed=operationRows.filter(o=>o.status==='COMPLETED').length,failed=operationRows.filter(o=>o.status==='FAILED').length;
- const avgDuration=(()=>{const d=operationRows.map(o=>o.durationMillis).filter((x):x is number=>x!==null);return d.length?Math.round(d.reduce((a,b)=>a+b,0)/d.length/1000):0})();
- const fmtDuration=(ms:number|null)=>ms===null?'—':ms<1000?`${ms} ms`:`${Math.round(ms/1000)} s`;
- const fmtMs=(ms:number)=>ms<1000?`${Math.round(ms)} ms`:`${(ms/1000).toFixed(1)} s`;
- const perf=performance.data;
+  const companyRows=companies.data??[];
+  const productRows=products.data??[];
+  const userRows=users.data??[];
+  const operationRows=operations.data??[];
+  const auditRows=audit.data??[];
+  const health=diagnostics.data;
+  const companyNameById=useMemo(()=>new Map(companyRows.map(c=>[c.id,c.name])),[companyRows]);
+  const norm=search.trim().toLowerCase();
+  const visibleCompanies=companyRows.filter(c=>(companyFilter==='ALL'||c.id===companyFilter)&&(!norm||`${c.name} ${c.slug}`.toLowerCase().includes(norm)));
+  const visibleOperations=operationRows.filter(o=>(companyFilter==='ALL'||o.company===companyFilter)&&(!norm||`${o.fileName} ${o.status} ${o.currentStage} ${companyNameById.get(o.company)??o.company}`.toLowerCase().includes(norm)));
+  const visibleAudit=auditRows.filter(a=>(companyFilter==='ALL'||a.scopeId===companyFilter||a.scopeId==='platform')&&(!norm||`${a.eventType} ${a.subject} ${a.detail}`.toLowerCase().includes(norm)));
+  const fmtDuration=(ms:number|null)=>ms===null?'—':ms<1000?`${ms} ms`:`${Math.round(ms/1000)} s`;
+  const fmtUptime=(ms:number)=>{const mins=Math.floor(ms/60000);const hours=Math.floor(mins/60);const days=Math.floor(hours/24);return days>0?`${days}d ${hours%24}h`:hours>0?`${hours}h ${mins%60}m`:`${mins}m`;};
 
- return <main className="page"><div className="eyebrow">4.0 • M20.1–M20.7</div><h1>Platform Owner Reporting</h1><p className="lead">Read-only cross-tenant oversight for adoption, access, UAT operations, failure diagnostics, performance evidence and platform activity.</p>
- <div className="summary-strip"><article><strong>{companyRows.length}</strong><span>Companies</span></article><article><strong>{activeProducts}/{productRows.length}</strong><span>Active product environments</span></article><article><strong>{activeUsers}/{userRows.length}</strong><span>Active users</span></article><article><strong>{companiesNeedingAttention.length}</strong><span>Companies needing attention</span></article></div>
+  return <main className="page">
+    <div className="eyebrow">M21 • SUPER ADMIN</div>
+    <h1>Platform Control Center</h1>
+    <p className="lead">See platform health, review companies, monitor UAT runs and trace important activity in one simple flow.</p>
 
- <section className="panel"><div className="section-heading"><div><div className="eyebrow">M20.7 • AUDIT</div><h2>Platform activity timeline</h2></div><span className="status completed">READ ONLY</span></div><p className="lead">Operational traceability derived from persisted company, user, product, UAT and load-test records. This is not presented as an immutable compliance ledger.</p>{audit.isError?<p className="error-text">Unable to load platform activity.</p>:<div className="table-wrap"><table><thead><tr><th>Time</th><th>Scope</th><th>Event</th><th>Subject</th><th>Detail</th></tr></thead><tbody>{visibleAudit.slice(0,100).map((a,i)=><tr key={`${a.eventType}-${a.occurredAt}-${i}`}><td>{new Date(a.occurredAt).toLocaleString()}</td><td>{companyNameById.get(a.scopeId)??a.scopeId}</td><td>{a.eventType}</td><td><strong>{a.subject}</strong></td><td>{a.detail}</td></tr>)}</tbody></table></div>}</section>
+    <section className="panel">
+      <div className="section-heading"><div><div className="eyebrow">STEP 1</div><h2>Platform health</h2></div><span className={`status ${health?.health==='HEALTHY'?'completed':'failed'}`}>{health?.health??(diagnostics.isLoading?'CHECKING':'UNAVAILABLE')}</span></div>
+      {diagnostics.isError?<p className="error-text">Unable to load platform diagnostics.</p>:<>
+      <div className="summary-strip">
+        <article><strong>{health?`${health.memory.remainingMb} MB`:'—'}</strong><span>Memory remaining</span></article>
+        <article><strong>{health?.uatRuns.running??'—'}</strong><span>UAT running</span></article>
+        <article><strong>{health?.traffic.uniqueVisitors??'—'}</strong><span>Unique visitors</span></article>
+        <article><strong>{health?.tenants.products??'—'}</strong><span>Products</span></article>
+      </div>
+      <div className="role-grid">
+        <article><strong>Memory</strong><p>{health?`${health.memory.usedMb} MB used of ${health.memory.maxMb} MB (${health.memory.usedPercent}%)`:'Loading…'}</p></article>
+        <article><strong>Uptime</strong><p>{health?fmtUptime(health.uptimeMs):'Loading…'}</p></article>
+        <article><strong>Traffic (24h)</strong><p>{health?`${health.traffic.visitsLast24h} visits • ${health.traffic.uniqueVisitorsLast24h} unique`:'Loading…'}</p></article>
+        <article><strong>Failures (24h)</strong><p>{health?`${health.uatRuns.failedLast24h} failed UAT runs`:'Loading…'}</p></article>
+        <article><strong>Companies / users</strong><p>{health?`${health.tenants.companies} companies • ${health.tenants.users} users`:'Loading…'}</p></article>
+        <article><strong>Products active</strong><p>{health?`${health.tenants.activeProducts}/${health.tenants.products} active`:'Loading…'}</p></article>
+      </div></>}
+    </section>
 
- <section className="panel"><div className="section-heading"><div><div className="eyebrow">M20.6 • PERFORMANCE</div><h2>Platform performance overview</h2></div><span className="status completed">READ ONLY</span></div>{performance.isError?<p className="error-text">Unable to load performance evidence.</p>:<><div className="metric-grid four compact"><article><strong>{perf?.pipelineRuns??0}</strong><span>Pipeline runs</span></article><article><strong>{fmtMs(perf?.averagePipelineDurationMs??0)}</strong><span>Average pipeline duration</span></article><article><strong>{perf?.loadTestRuns??0}</strong><span>Persisted load tests</span></article><article><strong>{perf?.loadTestSloPassed??0}/{perf?.loadTestRuns??0}</strong><span>Load SLO passed</span></article></div><div className="role-grid"><article><strong>Average load p95</strong><p>{fmtMs(perf?.averageLoadP95Ms??0)}</p></article><article><strong>Average throughput</strong><p>{perf?.averageThroughputPerSecond??0} req/s</p></article><article><strong>Average error rate</strong><p>{perf?.averageLoadErrorRatePercent??0}%</p></article><article><strong>Longest pipeline</strong><p>{fmtMs(perf?.maxPipelineDurationMs??0)}</p></article></div></>}</section>
+    <section className="panel">
+      <div className="section-heading"><div><div className="eyebrow">FILTER ONCE</div><h2>Choose what to inspect</h2></div></div>
+      <div className="form-grid">
+        <label className="field"><span>Company</span><select value={companyFilter} onChange={e=>setCompanyFilter(e.target.value)}><option value="ALL">All companies</option>{companyRows.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+        <label className="field"><span>Search</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Company, requirement, event…"/></label>
+      </div>
+    </section>
 
- <section className="panel"><div className="section-heading"><div><div className="eyebrow">M20.4 • UAT OPERATIONS</div><h2>Cross-tenant UAT monitoring</h2></div><span className="status completed">AUTO REFRESH 10s</span></div><div className="metric-grid four compact"><article><strong>{running}</strong><span>Queued / running</span></article><article><strong>{completed}</strong><span>Completed</span></article><article><strong>{failed}</strong><span>Failed</span></article><article><strong>{avgDuration}s</strong><span>Average completed duration</span></article></div>{operations.isError?<p className="error-text">Unable to load UAT operations.</p>:<div className="table-wrap"><table><thead><tr><th>Company</th><th>Requirement</th><th>Status</th><th>Stage</th><th>Duration</th><th>Started</th></tr></thead><tbody>{visibleOperations.slice(0,50).map(o=><tr key={o.id}><td>{companyNameById.get(o.company)??o.company}</td><td><strong>{o.fileName}</strong></td><td><span className={`status ${o.status==='COMPLETED'?'completed':o.status==='FAILED'?'failed':''}`}>{o.status}</span></td><td>{o.currentStage}</td><td>{fmtDuration(o.durationMillis)}</td><td>{new Date(o.createdAt).toLocaleString()}</td></tr>)}</tbody></table></div>}</section>
+    <section className="panel">
+      <div className="section-heading"><div><div className="eyebrow">STEP 2</div><h2>Companies</h2></div><span>{visibleCompanies.length} shown</span></div>
+      <p className="lead">Start here when a tenant needs attention. Products and users are summarized so you can identify setup gaps quickly.</p>
+      {companies.isError?<p className="error-text">Unable to load companies.</p>:<div className="table-wrap"><table><thead><tr><th>Company</th><th>Status</th><th>Products</th><th>Users</th><th>Next action</th></tr></thead><tbody>{visibleCompanies.map(c=><tr key={c.id}><td><strong>{c.name}</strong><br/><small>{c.slug}</small></td><td><span className={`status ${c.active?'completed':'failed'}`}>{c.active?'ACTIVE':'INACTIVE'}</span></td><td>{c.products}</td><td>{c.users}</td><td>{!c.active?'Review company':c.products===0?'Add product':c.users===0?'Add users':'Ready'}</td></tr>)}</tbody></table></div>}
+      <div className="role-grid"><article><strong>Registered products</strong><p>{productRows.length} environments across the platform.</p></article><article><strong>Registered users</strong><p>{userRows.length} total user accounts.</p></article></div>
+    </section>
 
- <section className="panel"><div className="section-heading"><div><div className="eyebrow">M20.5 • FAILURES</div><h2>Failure diagnostics</h2></div><span>{visibleFailures.length} failures</span></div><p className="lead">Sanitized operational diagnostics help the platform owner identify where UAT stopped without exposing passwords, tokens, API keys or raw execution payloads.</p>{failures.isError?<p className="error-text">Unable to load failure reporting.</p>:visibleFailures.length===0?<p>No failed UAT runs recorded.</p>:<div className="table-wrap"><table><thead><tr><th>Company</th><th>Requirement</th><th>Failed stage</th><th>Diagnostic</th><th>Failed at</th></tr></thead><tbody>{visibleFailures.slice(0,50).map(f=><tr key={f.id}><td>{companyNameById.get(f.company)??f.company}</td><td><strong>{f.fileName}</strong></td><td>{f.failedStage}</td><td>{f.diagnostic}</td><td>{f.failedAt?new Date(f.failedAt).toLocaleString():'—'}</td></tr>)}</tbody></table></div>}</section>
+    <section className="panel">
+      <div className="section-heading"><div><div className="eyebrow">STEP 3</div><h2>Live UAT</h2></div><span className="status completed">AUTO REFRESH 10s</span></div>
+      <p className="lead">Follow current and recent executions. Failed runs stay visible so the next investigation is obvious.</p>
+      {operations.isError?<p className="error-text">Unable to load UAT operations.</p>:visibleOperations.length===0?<p>No UAT runs match this view.</p>:<div className="table-wrap"><table><thead><tr><th>Company</th><th>Requirement</th><th>Status</th><th>Stage</th><th>Duration</th></tr></thead><tbody>{visibleOperations.slice(0,30).map(o=><tr key={o.id}><td>{companyNameById.get(o.company)??o.company}</td><td><strong>{o.fileName}</strong></td><td><span className={`status ${o.status==='COMPLETED'?'completed':o.status==='FAILED'?'failed':''}`}>{o.status}</span></td><td>{o.currentStage}</td><td>{fmtDuration(o.durationMillis)}</td></tr>)}</tbody></table></div>}
+    </section>
 
- <section className="panel"><div className="section-heading"><div><div className="eyebrow">FILTERS</div><h2>Explore platform data</h2></div></div><div className="form-grid"><label className="field"><span>Search</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Company, product, email, requirement…"/></label><label className="field"><span>Company</span><select value={companyFilter} onChange={e=>setCompanyFilter(e.target.value)}><option value="ALL">All companies</option>{companyRows.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="field"><span>Status</span><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value as 'ALL'|'ACTIVE'|'INACTIVE')}><option value="ALL">All</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label></div></section>
-
- <section className="panel"><div className="section-heading"><div><div className="eyebrow">PLATFORM HEALTH</div><h2>Adoption and access overview</h2></div><span className="status completed">READ ONLY</span></div><div className="metric-grid four compact"><article><strong>{activeCompanies}</strong><span>Active companies</span></article><article><strong>{environments.length}</strong><span>Environments in use</span></article><article><strong>{authTypes.length}</strong><span>Auth methods configured</span></article><article><strong>{roles.length}</strong><span>User roles in use</span></article></div></section>
- <section className="panel"><div className="section-heading"><div><div className="eyebrow">COMPANIES</div><h2>Company reporting</h2></div><span>{visibleCompanies.length} shown</span></div>{companies.isError?<p className="error-text">Unable to load companies.</p>:<div className="table-wrap"><table><thead><tr><th>Company</th><th>Status</th><th>Products</th><th>Users</th><th>Attention</th></tr></thead><tbody>{visibleCompanies.map(c=><tr key={c.id}><td><strong>{c.name}</strong><br/><small>{c.slug}</small></td><td><span className={`status ${c.active?'completed':'failed'}`}>{c.active?'ACTIVE':'INACTIVE'}</span></td><td>{c.products}</td><td>{c.users}</td><td>{!c.active?'Inactive company':c.products===0?'No products':c.users===0?'No users':'Healthy'}</td></tr>)}</tbody></table></div>}</section>
- <div className="two-col"><section className="panel"><div className="section-heading"><div><div className="eyebrow">PRODUCT FOOTPRINT</div><h2>Registered environments</h2></div><span>{visibleProducts.length} shown</span></div><div className="table-wrap"><table><thead><tr><th>Company</th><th>Product</th><th>Env</th><th>Auth</th><th>Status</th></tr></thead><tbody>{visibleProducts.map(p=><tr key={p.id}><td>{companyNameById.get(p.companyId)??'Unknown'}</td><td><strong>{p.name}</strong></td><td>{p.environment}</td><td>{p.authType}</td><td><span className={`status ${p.active?'completed':'failed'}`}>{p.active?'ACTIVE':'INACTIVE'}</span></td></tr>)}</tbody></table></div></section><section className="panel"><div className="section-heading"><div><div className="eyebrow">ACCESS FOOTPRINT</div><h2>Users and roles</h2></div><span>{visibleUsers.length} shown</span></div><div className="table-wrap"><table><thead><tr><th>Company</th><th>User</th><th>Role</th><th>Status</th></tr></thead><tbody>{visibleUsers.map(u=><tr key={u.id}><td>{companyNameById.get(u.companyId)??'Unknown'}</td><td>{u.email}</td><td>{u.role}</td><td><span className={`status ${u.active?'completed':'failed'}`}>{u.active?'ACTIVE':'INACTIVE'}</span></td></tr>)}</tbody></table></div></section></div>
- <section className="panel"><div className="section-heading"><div><div className="eyebrow">DISTRIBUTION</div><h2>Platform configuration mix</h2></div></div><div className="role-grid"><article><strong>Authentication methods</strong><p>{authTypes.length?authTypes.join(' • '):'No authentication methods yet.'}</p></article><article><strong>Environments</strong><p>{environments.length?environments.join(' • '):'No environments yet.'}</p></article><article><strong>User roles</strong><p>{roles.length?roles.join(' • '):'No user roles yet.'}</p></article><article><strong>Operational scope</strong><p>M20.7 adds platform activity traceability. Secure report drill-down follows in M20.8.</p></article></div></section>
- </main>;
+    <section className="panel">
+      <div className="section-heading"><div><div className="eyebrow">STEP 4</div><h2>Activity</h2></div><span>Latest events</span></div>
+      <p className="lead">Use the timeline only after checking company and UAT state. It provides the trace needed to understand what changed.</p>
+      {audit.isError?<p className="error-text">Unable to load platform activity.</p>:visibleAudit.length===0?<p>No activity matches this view.</p>:<div className="table-wrap"><table><thead><tr><th>Time</th><th>Company</th><th>Event</th><th>Detail</th></tr></thead><tbody>{visibleAudit.slice(0,40).map((a,i)=><tr key={`${a.eventType}-${a.occurredAt}-${i}`}><td>{new Date(a.occurredAt).toLocaleString()}</td><td>{companyNameById.get(a.scopeId)??a.scopeId}</td><td><strong>{a.eventType}</strong></td><td>{a.detail}</td></tr>)}</tbody></table></div>}
+    </section>
+  </main>;
 }
