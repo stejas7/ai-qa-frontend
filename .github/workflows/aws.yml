@@ -239,3 +239,5 @@ jobs:
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/ai_uat_ec2
+
+# Redeploy trigger: ai-uat.duckdns.org migration
