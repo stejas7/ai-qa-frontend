@@ -9,6 +9,7 @@ import ProductBlueprintPage from './pages/ProductBlueprintPage';
 import PublicLoginPage from './pages/PublicLoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import PricingPage from './pages/PricingPage';
 import AgentActivityPage from './pages/AgentActivityPage';
 import ApiReferencePage from './pages/ApiReferencePage';
 import HealingPage from './pages/HealingPage';
@@ -54,6 +55,7 @@ export default function App(){
   const routes=<Routes>
     <Route path="/" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<PublicLandingPage/>}/>
     <Route path="/login" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<PublicLoginPage/>}/>
+    <Route path="/pricing" element={<PricingPage/>}/>
     <Route path="/forgot-password" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<ForgotPasswordPage/>}/>
     <Route path="/reset-password" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<ResetPasswordPage/>}/>
     <Route path="/how-it-works" element={platform?<Navigate to="/platform" replace/>:<ProductBlueprintPage/>}/>
@@ -80,7 +82,7 @@ export default function App(){
     <Route path="*" element={<Navigate to={authenticated?(platform?'/platform':'/mission'):'/'} replace/>}/>
   </Routes>;
 
-  if(!authenticated){return <div className="app-shell"><header className="topbar"><button className="brand brand-button" type="button" onClick={()=>navigate('/')}><div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>Requirement to release confidence</span></div></button><nav><NavLink to="/" end>Product</NavLink><NavLink to="/how-it-works">How It Works</NavLink><NavLink to="/login">Sign in</NavLink></nav></header>{routes}</div>}
+  if(!authenticated){return <div className="app-shell"><header className="topbar"><button className="brand brand-button" type="button" onClick={()=>navigate('/')}><div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>Requirement to release confidence</span></div></button><nav><NavLink to="/" end>Product</NavLink><NavLink to="/how-it-works">How It Works</NavLink><NavLink to="/pricing">Pricing</NavLink><NavLink to="/login">Sign in</NavLink></nav></header>{routes}</div>}
 
   return <div className={`authenticated-shell ${collapsed?'sidebar-collapsed':''}`}>
     <button className="mobile-menu-btn" type="button" onClick={()=>setMobileOpen(true)} aria-label="Open navigation">☰</button>
