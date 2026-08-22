@@ -39,13 +39,14 @@ function AnalyticsTracker(){const location=useLocation();useEffect(()=>{aiUatApi
 function Protected({authenticated,children}:{authenticated:boolean;children:React.ReactNode}){return authenticated?<>{children}</>:<Navigate to="/login" replace/>}
 
 export default function App(){
+  const location=useLocation();
   const session=useQuery({queryKey:['current-user'],queryFn:aiUatApi.currentUser,retry:false,staleTime:30000});
   const [accountOpen,setAccountOpen]=useState(false);
   const [signingOut,setSigningOut]=useState(false);
   const authenticated=!!session.data;
   const platform=session.data?.role==='PLATFORM_ADMIN'||session.data?.role==='SUPER_ADMIN';
 
-  useEffect(()=>{setAccountOpen(false)},[useLocation().pathname]);
+  useEffect(()=>{setAccountOpen(false)},[location.pathname]);
 
   const signOut=async()=>{
     if(signingOut)return;
