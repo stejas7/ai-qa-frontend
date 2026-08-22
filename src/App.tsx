@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import DashboardPage from './pages/DashboardPage';
@@ -22,32 +22,88 @@ import ReleaseGovernancePage from './pages/ReleaseGovernancePage';
 import ProductAssistant from './components/ProductAssistant';
 import { aiUatApi } from './api/aiUat';
 
-const primaryNav=[['Start UAT','/mission'],['Results','/dashboard'],['Release','/release']] as const;
-const workspaceNav=[['Execution','/execution','Run history and evidence'],['Performance','/performance','Load and SLO checks'],['Automation','/automation-scripts','Reusable automation scripts'],['Test Management','/test-management','Traceability and coverage'],['Integrations','/integrations','External systems and webhooks'],['Company Setup','/account','Team, products and credentials']] as const;
-const VISITOR_KEY='ai_uat_engineer_visitor_id';
-function visitorId(){let id=localStorage.getItem(VISITOR_KEY);if(!id){id=typeof crypto!=='undefined'&&'randomUUID' in crypto?crypto.randomUUID():`visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;localStorage.setItem(VISITOR_KEY,id)}return id}
-function AnalyticsTracker(){const location=useLocation();useEffect(()=>{aiUatApi.recordVisit(location.pathname,visitorId()).catch(()=>undefined)},[location.pathname]);return null}
+const companyNav=[
+  ['▶','Start UAT','/mission'],
+  ['▦','Results','/dashboard'],
+  ['✓','Release','/release'],
+  ['◉','Execution','/execution'],
+  ['↗','Performance','/performance'],
+  ['⌘','Automation','/automation-scripts'],
+  ['☷','Test Management','/test-management'],
+  ['⛓','Integrations','/integrations'],
+  ['⚙','Company Setup','/account']
+] as const;
+
 function Protected({authenticated,children}:{authenticated:boolean;children:React.ReactNode}){return authenticated?<>{children}</>:<Navigate to="/login" replace/>}
 function CompanyOnly({authenticated,platform,children}:{authenticated:boolean;platform:boolean;children:React.ReactNode}){if(!authenticated)return <Navigate to="/login" replace/>;return platform?<Navigate to="/platform" replace/>:<>{children}</>}
 
 export default function App(){
-  const location=useLocation(); const navigate=useNavigate();
+  const navigate=useNavigate();
+  const location=useLocation();
   const session=useQuery({queryKey:['current-user'],queryFn:aiUatApi.currentUser,retry:false,staleTime:30000});
-  const [accountOpen,setAccountOpen]=useState(false); const [workspaceOpen,setWorkspaceOpen]=useState(false); const [signingOut,setSigningOut]=useState(false);
-  const authenticated=!!session.data; const platform=session.data?.role==='PLATFORM_ADMIN'||session.data?.role==='SUPER_ADMIN';
-  useEffect(()=>{setAccountOpen(false);setWorkspaceOpen(false)},[location.pathname]);
+  const [collapsed,setCollapsed]=useState(false);
+  const [mobileOpen,setMobileOpen]=useState(false);
+  const [accountOpen,setAccountOpen]=useState(false);
+  const [signingOut,setSigningOut]=useState(false);
+  const authenticated=!!session.data;
+  const platform=session.data?.role==='PLATFORM_ADMIN'||session.data?.role==='SUPER_ADMIN';
+
   const signOut=async()=>{if(signingOut)return;setSigningOut(true);try{await aiUatApi.logout()}finally{setSigningOut(false)}};
-  const openWorkspacePage=(path:string)=>{setWorkspaceOpen(false);navigate(path)};
-  return <div className="app-shell"><AnalyticsTracker/>
-    <header className="topbar"><button className="brand brand-button" type="button" onClick={()=>authenticated?navigate(platform?'/platform':'/mission'):navigate('/')}><div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>{platform?'Platform oversight':authenticated?'Company UAT workspace':'Requirement to release confidence'}</span></div></button><nav>{authenticated?<>{platform?<span className="platform-nav-label">Platform Dashboard</span>:primaryNav.map(([label,path])=><NavLink key={path} to={path} className={({isActive})=>isActive?'active':''}>{label}</NavLink>)}{!platform&&<button type="button" className={`nav-tray-btn ${workspaceOpen?'active':''}`} onClick={()=>{setWorkspaceOpen(v=>!v);setAccountOpen(false)}}>Workspace <span>⌄</span></button>}<button type="button" className={`account-nav-btn ${accountOpen?'active':''}`} onClick={()=>{setAccountOpen(v=>!v);setWorkspaceOpen(false)}}>{session.data?.email?.slice(0,1).toUpperCase()||'A'} <span>⌄</span></button></>:<><NavLink to="/" end>Product</NavLink><NavLink to="/how-it-works">How It Works</NavLink><NavLink to="/login">Sign in</NavLink></>}</nav></header>
-    {authenticated&&workspaceOpen&&!platform&&<><button className="account-tray-backdrop" aria-label="Close workspace menu" onClick={()=>setWorkspaceOpen(false)}/><aside className="workspace-tray"><div className="tray-title"><div><span className="eyebrow">WORKSPACE</span><h2>Tools & setup</h2></div><button type="button" onClick={()=>setWorkspaceOpen(false)}>×</button></div><div className="workspace-tray-links">{workspaceNav.map(([label,path,description])=><button key={path} type="button" onClick={()=>openWorkspacePage(path)}><strong>{label}</strong><span>{description}</span></button>)}</div></aside></>}
-    {authenticated&&accountOpen&&<><button className="account-tray-backdrop" aria-label="Close account tray" onClick={()=>setAccountOpen(false)}/><aside className="account-tray"><div className="account-tray-head"><div><span className="eyebrow">ACCOUNT</span><h2>Session</h2></div><button type="button" onClick={()=>setAccountOpen(false)}>×</button></div><div className="account-tray-user"><div className="account-avatar">{session.data!.email.slice(0,1).toUpperCase()}</div><div><strong>{session.data!.email}</strong><span>Signed in</span></div></div><div className="account-tray-grid"><div><span>Role</span><strong>{session.data!.role.replaceAll('_',' ')}</strong></div><div><span>Scope</span><strong>{platform?'All companies':`${session.data!.companyId.slice(0,8)}…`}</strong></div><div><span>Session</span><strong>Active</strong></div></div><button className="primary-btn account-signout" onClick={signOut} disabled={signingOut}>{signingOut?'Signing out…':'Sign out'}</button></aside></>}
-    <Routes>
-      <Route path="/" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<PublicLandingPage/>}/><Route path="/login" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<PublicLoginPage/>}/><Route path="/forgot-password" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<ForgotPasswordPage/>}/><Route path="/reset-password" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<ResetPasswordPage/>}/>
-      <Route path="/how-it-works" element={platform?<Navigate to="/platform" replace/>:<ProductBlueprintPage/>}/><Route path="/knowledge" element={<Navigate to={platform?'/platform':authenticated?'/mission':'/how-it-works'} replace/>}/><Route path="/blueprint" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/><Route path="/product-blueprint" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/><Route path="/product-blueprint-gallery" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/><Route path="/architecture" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/><Route path="/roadmap" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/><Route path="/technology" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/>
-      <Route path="/platform" element={<Protected authenticated={authenticated}><PlatformPage/></Protected>}/>
-      <Route path="/account" element={<CompanyOnly authenticated={authenticated} platform={platform}><AccountPage/></CompanyOnly>}/><Route path="/mission" element={<CompanyOnly authenticated={authenticated} platform={platform}><NewMissionPage/></CompanyOnly>}/><Route path="/dashboard" element={<CompanyOnly authenticated={authenticated} platform={platform}><DashboardPage/></CompanyOnly>}/><Route path="/release" element={<CompanyOnly authenticated={authenticated} platform={platform}><ReleaseGovernancePage/></CompanyOnly>}/><Route path="/execution" element={<CompanyOnly authenticated={authenticated} platform={platform}><ExecutionCenterPage/></CompanyOnly>}/><Route path="/performance" element={<CompanyOnly authenticated={authenticated} platform={platform}><PerformancePage/></CompanyOnly>}/><Route path="/automation-scripts" element={<CompanyOnly authenticated={authenticated} platform={platform}><AutomationScriptsPage/></CompanyOnly>}/><Route path="/test-management" element={<CompanyOnly authenticated={authenticated} platform={platform}><TestManagementPage/></CompanyOnly>}/><Route path="/integrations" element={<CompanyOnly authenticated={authenticated} platform={platform}><IntegrationsPage/></CompanyOnly>}/><Route path="/api-reference" element={<CompanyOnly authenticated={authenticated} platform={platform}><ApiReferencePage/></CompanyOnly>}/><Route path="/agents" element={<CompanyOnly authenticated={authenticated} platform={platform}><AgentActivityPage/></CompanyOnly>}/><Route path="/healing" element={<CompanyOnly authenticated={authenticated} platform={platform}><HealingPage/></CompanyOnly>}/>
-      <Route path="*" element={<Navigate to={authenticated?(platform?'/platform':'/mission'):'/'} replace/>}/>
-    </Routes>{authenticated&&!platform&&<ProductAssistant/>}
+  const closeMobile=()=>setMobileOpen(false);
+
+  const routes=<Routes>
+    <Route path="/" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<PublicLandingPage/>}/>
+    <Route path="/login" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<PublicLoginPage/>}/>
+    <Route path="/forgot-password" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<ForgotPasswordPage/>}/>
+    <Route path="/reset-password" element={authenticated?<Navigate to={platform?'/platform':'/mission'} replace/>:<ResetPasswordPage/>}/>
+    <Route path="/how-it-works" element={platform?<Navigate to="/platform" replace/>:<ProductBlueprintPage/>}/>
+    <Route path="/knowledge" element={<Navigate to={platform?'/platform':authenticated?'/mission':'/how-it-works'} replace/>}/>
+    <Route path="/blueprint" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/>
+    <Route path="/product-blueprint" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/>
+    <Route path="/product-blueprint-gallery" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/>
+    <Route path="/architecture" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/>
+    <Route path="/roadmap" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/>
+    <Route path="/technology" element={<Navigate to={platform?'/platform':'/how-it-works'} replace/>}/>
+    <Route path="/platform" element={<Protected authenticated={authenticated}><PlatformPage/></Protected>}/>
+    <Route path="/account" element={<CompanyOnly authenticated={authenticated} platform={platform}><AccountPage/></CompanyOnly>}/>
+    <Route path="/mission" element={<CompanyOnly authenticated={authenticated} platform={platform}><NewMissionPage/></CompanyOnly>}/>
+    <Route path="/dashboard" element={<CompanyOnly authenticated={authenticated} platform={platform}><DashboardPage/></CompanyOnly>}/>
+    <Route path="/release" element={<CompanyOnly authenticated={authenticated} platform={platform}><ReleaseGovernancePage/></CompanyOnly>}/>
+    <Route path="/execution" element={<CompanyOnly authenticated={authenticated} platform={platform}><ExecutionCenterPage/></CompanyOnly>}/>
+    <Route path="/performance" element={<CompanyOnly authenticated={authenticated} platform={platform}><PerformancePage/></CompanyOnly>}/>
+    <Route path="/automation-scripts" element={<CompanyOnly authenticated={authenticated} platform={platform}><AutomationScriptsPage/></CompanyOnly>}/>
+    <Route path="/test-management" element={<CompanyOnly authenticated={authenticated} platform={platform}><TestManagementPage/></CompanyOnly>}/>
+    <Route path="/integrations" element={<CompanyOnly authenticated={authenticated} platform={platform}><IntegrationsPage/></CompanyOnly>}/>
+    <Route path="/api-reference" element={<CompanyOnly authenticated={authenticated} platform={platform}><ApiReferencePage/></CompanyOnly>}/>
+    <Route path="/agents" element={<CompanyOnly authenticated={authenticated} platform={platform}><AgentActivityPage/></CompanyOnly>}/>
+    <Route path="/healing" element={<CompanyOnly authenticated={authenticated} platform={platform}><HealingPage/></CompanyOnly>}/>
+    <Route path="*" element={<Navigate to={authenticated?(platform?'/platform':'/mission'):'/'} replace/>}/>
+  </Routes>;
+
+  if(!authenticated){return <div className="app-shell"><header className="topbar"><button className="brand brand-button" type="button" onClick={()=>navigate('/')}><div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>Requirement to release confidence</span></div></button><nav><NavLink to="/" end>Product</NavLink><NavLink to="/how-it-works">How It Works</NavLink><NavLink to="/login">Sign in</NavLink></nav></header>{routes}</div>}
+
+  return <div className={`authenticated-shell ${collapsed?'sidebar-collapsed':''}`}>
+    <button className="mobile-menu-btn" type="button" onClick={()=>setMobileOpen(true)} aria-label="Open navigation">☰</button>
+    {mobileOpen&&<button className="sidebar-mobile-backdrop" onClick={closeMobile} aria-label="Close navigation"/>}
+    <aside className={`app-sidebar ${mobileOpen?'mobile-open':''}`}>
+      <div className="sidebar-brand" onClick={()=>navigate(platform?'/platform':'/mission')} role="button" tabIndex={0}>
+        <div className="sidebar-logo">A</div>
+        {!collapsed&&<div><strong>AI UAT</strong><span>Autonomous UAT Engineer</span></div>}
+      </div>
+      <button className="sidebar-collapse" type="button" onClick={()=>setCollapsed(v=>!v)} title={collapsed?'Expand sidebar':'Collapse sidebar'}>{collapsed?'›':'‹'}</button>
+      <nav className="sidebar-nav" onClick={closeMobile}>
+        {platform?<NavLink to="/platform" className={({isActive})=>`sidebar-link ${isActive?'active':''}`}><span className="sidebar-icon">▦</span>{!collapsed&&<span>Platform Dashboard</span>}</NavLink>:companyNav.map(([icon,label,path])=><NavLink key={path} to={path} className={({isActive})=>`sidebar-link ${isActive?'active':''}`}><span className="sidebar-icon">{icon}</span>{!collapsed&&<span>{label}</span>}</NavLink>)}
+      </nav>
+      <div className="sidebar-footer">
+        <button className={`sidebar-account ${accountOpen?'open':''}`} type="button" onClick={()=>setAccountOpen(v=>!v)}>
+          <span className="sidebar-avatar">{session.data!.email.slice(0,1).toUpperCase()}</span>
+          {!collapsed&&<span className="sidebar-account-copy"><strong>{session.data!.email}</strong><small>{platform?'Platform Admin':session.data!.role.replaceAll('_',' ')}</small></span>}
+        </button>
+        {accountOpen&&!collapsed&&<div className="sidebar-account-panel"><div><span>Role</span><strong>{session.data!.role.replaceAll('_',' ')}</strong></div><div><span>Scope</span><strong>{platform?'All companies':'Company workspace'}</strong></div><div><span>Session</span><strong>Active</strong></div><button onClick={signOut} disabled={signingOut}>{signingOut?'Signing out…':'Sign out'}</button></div>}
+        {!collapsed&&<div className="sidebar-status"><span className="status-dot"/><div><strong>{platform?'Platform oversight':'Workspace online'}</strong><small>{platform?'Watching all tenants':'Ready for UAT'}</small></div></div>}
+      </div>
+    </aside>
+    <main className="authenticated-content" key={location.pathname}>{routes}</main>
+    {!platform&&<ProductAssistant/>}
   </div>;
 }
