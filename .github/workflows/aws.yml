@@ -56,6 +56,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ai-uat-frontend-${{ github.sha }}
+
       - name: Configure SSH
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -67,26 +68,64 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ai_uat_ec2
           chmod 600 ~/.ssh/ai_uat_ec2
-          ssh-keyscan -T 10 -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          rm -f ~/.ssh/known_hosts /tmp/ec2_host_keys
+          for attempt in 1 2 3 4 5; do
+            echo "SSH host-key scan attempt $attempt/5"
+            if ssh-keyscan -T 15 -H "$EC2_HOST" > /tmp/ec2_host_keys 2>/dev/null && [ -s /tmp/ec2_host_keys ]; then
+              cat /tmp/ec2_host_keys > ~/.ssh/known_hosts
+              break
+            fi
+            sleep 3
+          done
+          test -s ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          if ! ssh-keygen -F "$EC2_HOST" -f ~/.ssh/known_hosts >/dev/null; then
+            echo "ERROR: EC2 host key was not added to known_hosts"
+            exit 1
+          fi
+
       - name: Verify SSH connectivity
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
         run: |
           set -Eeuo pipefail
-          timeout 60 ssh -i ~/.ssh/ai_uat_ec2 -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=2 "$EC2_USERNAME@$EC2_HOST" 'echo "SSH connection OK"'
+          timeout 60 ssh \
+            -i ~/.ssh/ai_uat_ec2 \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -o ConnectTimeout=15 \
+            -o ConnectionAttempts=2 \
+            "$EC2_USERNAME@$EC2_HOST" 'echo "SSH connection OK"'
+
       - name: Copy React bundle
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-        run: scp -i ~/.ssh/ai_uat_ec2 -o ConnectTimeout=15 ai-uat-frontend.tgz "$EC2_USERNAME@$EC2_HOST:/tmp/ai-uat-frontend.tgz"
+        run: |
+          set -Eeuo pipefail
+          scp \
+            -i ~/.ssh/ai_uat_ec2 \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -o ConnectTimeout=15 \
+            ai-uat-frontend.tgz "$EC2_USERNAME@$EC2_HOST:/tmp/ai-uat-frontend.tgz"
+
       - name: Install React bundle atomically
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/ai_uat_ec2 -o ConnectTimeout=15 "$EC2_USERNAME@$EC2_HOST" 'bash -se' <<'REMOTE_SCRIPT'
+          ssh \
+            -i ~/.ssh/ai_uat_ec2 \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -o ConnectTimeout=15 \
+            "$EC2_USERNAME@$EC2_HOST" 'bash -se' <<'REMOTE_SCRIPT'
           set -Eeuo pipefail
           DEPLOY_DIR=/var/www/auravis-frontend
           NEXT_DIR=/var/www/auravis-frontend.next
@@ -160,9 +199,6 @@ jobs:
             sudo nginx -t && sudo systemctl reload nginx
             exit 1
           fi
-          # Validate the deployed bundle directly from disk and validate nginx separately.
-          # Do not loop HTTPS from the EC2 host back to its public hostname; that path can
-          # time out because of host/network hairpin behaviour even when nginx/UI are healthy.
           if [ ! -s "$DEPLOY_DIR/index.html" ] || ! grep -qi '<div id="root"' "$DEPLOY_DIR/index.html"; then
             echo "ERROR: Installed React bundle validation failed; restoring previous UI"
             sudo rm -rf "$DEPLOY_DIR"
@@ -174,11 +210,13 @@ jobs:
           sudo rm -rf "$PREV_DIR"
           echo "React bundle installed and nginx configuration is valid"
           REMOTE_SCRIPT
+
       - name: Report backend status through Nginx
         continue-on-error: true
         run: |
           response="$(curl --connect-timeout 5 --max-time 10 -sS "$PUBLIC_BASE_URL/actuator/health" || true)"
           if echo "$response" | grep -q '"status":"UP"'; then echo "Backend is UP"; else echo "WARNING: Backend is not healthy yet; frontend deployment remains valid"; fi
+
       - name: Verify React production UI
         run: |
           set -Eeuo pipefail
@@ -193,6 +231,7 @@ jobs:
           done
           echo "ERROR: React public UI health check failed"
           exit 1
+
       - name: Cleanup SSH key
         if: always()
-        run: rm -f ~/.ssh/ai_uat_ec2
+        run: rm -f ~/.ssh/ai_uat_ec2 ~/.ssh/known_hosts /tmp/ec2_host_keys
