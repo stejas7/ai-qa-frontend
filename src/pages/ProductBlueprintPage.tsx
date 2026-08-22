@@ -1,24 +1,24 @@
 import { useState } from 'react';
 
-const visualVersion='20260822-m50-v1';
+const visualVersion='20260822-m60-v1';
 const visuals = [
-  { title: 'Product overview', subtitle: 'Current AI UAT Engineer product map through M50: tenant setup, AI workforce, execution, evidence, governance and platform oversight', src: `/blueprint-overview-light.svg?v=${visualVersion}` },
-  { title: 'What the product does', subtitle: 'Register → Requirement → AI/RAG → bounded workforce → test design → automation → Playwright → evidence → READY/BLOCKED', src: `/blueprint-product-flow.svg?v=${visualVersion}` },
+  { title: 'Product overview', subtitle: 'Current AI UAT Engineer product map through M60: tenant setup, AI workforce, execution, evidence, governance, adaptive intelligence and platform oversight', src: `/blueprint-overview-light.svg?v=${visualVersion}` },
+  { title: 'What the product does', subtitle: 'Register → Requirement → AI/RAG → bounded workforce → adaptive test design → automation → Playwright → evidence → READY/BLOCKED', src: `/blueprint-product-flow.svg?v=${visualVersion}` },
   { title: 'System architecture', subtitle: 'React + Nginx + Spring Boot + Spring AI + PostgreSQL + Playwright + durable evidence + AWS deployment', src: `/blueprint-architecture.svg?v=${visualVersion}` },
   { title: 'Technology stack', subtitle: 'Java 21, Spring Boot 3.5, Spring AI, pgvector/PostgreSQL, Playwright, React/TypeScript, Docker, GHCR, GitHub Actions, AWS and Nginx', src: `/blueprint-technology.svg?v=${visualVersion}` },
   { title: 'Database & traceability', subtitle: 'Tenant-safe data path from companies/users/products through missions, tests, executions, evidence, audit and release decisions', src: `/blueprint-database.svg?v=${visualVersion}` },
-  { title: 'M1–M50 roadmap', subtitle: 'Foundation → enterprise/security → autonomous intelligence → integrations/governance → scale/observability → multi-agent release intelligence & self-UAT', src: `/blueprint-roadmap.svg?v=${visualVersion}` }
+  { title: 'M1–M60 roadmap', subtitle: 'Foundation → enterprise/security → 100-agent workforce → integrations/governance → scale/observability → self-UAT → adaptive UAT intelligence', src: `/blueprint-roadmap.svg?v=${visualVersion}` }
 ] as const;
 
 export default function ProductBlueprintPage(){
   const [selected,setSelected]=useState<(typeof visuals)[number] | null>(null);
   return <main className="page">
-    <div className="eyebrow">PRODUCT • ARCHITECTURE • TECHNOLOGY • DATABASE • ROADMAP M1–M50</div>
+    <div className="eyebrow">PRODUCT • ARCHITECTURE • TECHNOLOGY • DATABASE • ROADMAP M1–M60</div>
     <h1>How AI UAT Engineer Works</h1>
-    <p className="lead">A current visual guide to the complete AI UAT Engineer product through M50. Select any visual to open it larger. Use the self-UAT requirement below to test AI UAT Engineer against itself.</p>
+    <p className="lead">A current visual guide to the complete AI UAT Engineer product through M60. Select any visual to open it larger. Use the self-UAT requirement below to test AI UAT Engineer against itself.</p>
 
     <section className="panel" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:18,flexWrap:'wrap'}}>
-      <div><div className="eyebrow">SELF-UAT BASELINE</div><h2 style={{margin:'5px 0'}}>Test AI UAT Engineer with its own requirement</h2><p className="muted" style={{margin:0,maxWidth:760}}>The requirement baseline covers authentication, tenant isolation, product registration, 100-agent workforce planning, RAG, Playwright execution, durable evidence, release governance, Platform Admin oversight, CI/CD and self-UAT acceptance gates.</p></div>
+      <div><div className="eyebrow">SELF-UAT BASELINE</div><h2 style={{margin:'5px 0'}}>Test AI UAT Engineer with its own requirement</h2><p className="muted" style={{margin:0,maxWidth:760}}>The requirement baseline covers authentication, tenant isolation, product registration, 100-agent workforce planning, RAG, Playwright execution, durable evidence, release governance, adaptive intelligence, Platform Admin oversight, CI/CD and self-UAT acceptance gates.</p></div>
       <a className="primary-btn" href="/AI_UAT_Engineer_Self_UAT_Requirements.md" download>Download requirement document</a>
     </section>
 
