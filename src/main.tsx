@@ -6,6 +6,7 @@ import App from './App';
 import './styles.css';
 import './business.css';
 import './auth.css';
+import './compact.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
