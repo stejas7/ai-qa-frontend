@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import DashboardPage from './pages/DashboardPage';
 import NewMissionPage from './pages/NewMissionPage';
 import ExecutionCenterPage from './pages/ExecutionCenterPage';
@@ -22,15 +22,19 @@ import ReleaseGovernancePage from './pages/ReleaseGovernancePage';
 import ProductAssistant from './components/ProductAssistant';
 import { aiUatApi } from './api/aiUat';
 
-const appNav=[
+const primaryNav=[
   ['Start UAT','/mission'],
   ['Results','/dashboard'],
-  ['Release','/release'],
-  ['Execution','/execution'],
-  ['Performance','/performance'],
-  ['Automation','/automation-scripts'],
-  ['Test Management','/test-management'],
-  ['Integrations','/integrations']
+  ['Release','/release']
+] as const;
+
+const workspaceNav=[
+  ['Execution','/execution','Run history and evidence'],
+  ['Performance','/performance','Load and SLO checks'],
+  ['Automation','/automation-scripts','Reusable automation scripts'],
+  ['Test Management','/test-management','Traceability and coverage'],
+  ['Integrations','/integrations','External systems and webhooks'],
+  ['Company Setup','/account','Team, products and credentials']
 ] as const;
 
 const VISITOR_KEY='ai_uat_engineer_visitor_id';
@@ -40,13 +44,15 @@ function Protected({authenticated,children}:{authenticated:boolean;children:Reac
 
 export default function App(){
   const location=useLocation();
+  const navigate=useNavigate();
   const session=useQuery({queryKey:['current-user'],queryFn:aiUatApi.currentUser,retry:false,staleTime:30000});
   const [accountOpen,setAccountOpen]=useState(false);
+  const [workspaceOpen,setWorkspaceOpen]=useState(false);
   const [signingOut,setSigningOut]=useState(false);
   const authenticated=!!session.data;
   const platform=session.data?.role==='PLATFORM_ADMIN'||session.data?.role==='SUPER_ADMIN';
 
-  useEffect(()=>{setAccountOpen(false)},[location.pathname]);
+  useEffect(()=>{setAccountOpen(false);setWorkspaceOpen(false)},[location.pathname]);
 
   const signOut=async()=>{
     if(signingOut)return;
@@ -54,15 +60,19 @@ export default function App(){
     try{await aiUatApi.logout()}finally{setSigningOut(false)}
   };
 
+  const openWorkspacePage=(path:string)=>{setWorkspaceOpen(false);navigate(path)};
+
   return <div className="app-shell">
     <AnalyticsTracker/>
     <header className="topbar">
-      <div className="brand"><div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>{platform?'Platform control center':authenticated?'Company UAT workspace':'Requirement to release confidence'}</span></div></div>
+      <button className="brand brand-button" type="button" onClick={()=>authenticated?navigate(platform?'/platform':'/mission'):navigate('/')}>
+        <div className="brand-mark">A</div><div><strong>AI UAT ENGINEER</strong><span>{platform?'Platform control center':authenticated?'Company UAT workspace':'Requirement to release confidence'}</span></div>
+      </button>
       <nav>
         {authenticated?<>
-          {platform&&<NavLink to="/platform" className={({isActive})=>isActive?'active':''}>Platform</NavLink>}
-          {!platform&&appNav.map(([label,path])=><NavLink key={path} to={path} className={({isActive})=>isActive?'active':''}>{label}</NavLink>)}
-          <button type="button" className={`account-nav-btn ${accountOpen?'active':''}`} onClick={()=>setAccountOpen(v=>!v)}>Account</button>
+          {platform?<NavLink to="/platform" className={({isActive})=>isActive?'active':''}>Platform</NavLink>:primaryNav.map(([label,path])=><NavLink key={path} to={path} className={({isActive})=>isActive?'active':''}>{label}</NavLink>)}
+          {!platform&&<button type="button" className={`nav-tray-btn ${workspaceOpen?'active':''}`} onClick={()=>{setWorkspaceOpen(v=>!v);setAccountOpen(false)}}>Workspace <span>⌄</span></button>}
+          <button type="button" className={`account-nav-btn ${accountOpen?'active':''}`} onClick={()=>{setAccountOpen(v=>!v);setWorkspaceOpen(false)}}>{session.data?.email?.slice(0,1).toUpperCase()||'A'} <span>⌄</span></button>
         </>:<>
           <NavLink to="/" end className={({isActive})=>isActive?'active':''}>Product</NavLink>
           <NavLink to="/how-it-works" className={({isActive})=>isActive?'active':''}>How It Works</NavLink>
@@ -71,18 +81,28 @@ export default function App(){
       </nav>
     </header>
 
+    {authenticated&&workspaceOpen&&!platform&&<>
+      <button className="account-tray-backdrop" aria-label="Close workspace menu" onClick={()=>setWorkspaceOpen(false)}/>
+      <aside className="workspace-tray" aria-label="Workspace navigation">
+        <div className="tray-title"><div><span className="eyebrow">WORKSPACE</span><h2>Tools & setup</h2></div><button type="button" onClick={()=>setWorkspaceOpen(false)} aria-label="Close">×</button></div>
+        <div className="workspace-tray-links">
+          {workspaceNav.map(([label,path,description])=><button key={path} type="button" onClick={()=>openWorkspacePage(path)} className={location.pathname===path?'active':''}><strong>{label}</strong><span>{description}</span></button>)}
+        </div>
+      </aside>
+    </>}
+
     {authenticated&&accountOpen&&<>
       <button className="account-tray-backdrop" aria-label="Close account tray" onClick={()=>setAccountOpen(false)}/>
       <aside className="account-tray" aria-label="Account details">
-        <div className="account-tray-head"><div><span className="eyebrow">ACCOUNT</span><h2>Workspace session</h2></div><button type="button" onClick={()=>setAccountOpen(false)} aria-label="Close">×</button></div>
+        <div className="account-tray-head"><div><span className="eyebrow">ACCOUNT</span><h2>Session</h2></div><button type="button" onClick={()=>setAccountOpen(false)} aria-label="Close">×</button></div>
         <div className="account-tray-user"><div className="account-avatar">{session.data!.email.slice(0,1).toUpperCase()}</div><div><strong>{session.data!.email}</strong><span>Signed in</span></div></div>
         <div className="account-tray-grid">
           <div><span>Role</span><strong>{session.data!.role.replaceAll('_',' ')}</strong></div>
           <div><span>Company</span><strong>{platform?'Platform':`${session.data!.companyId.slice(0,8)}…`}</strong></div>
           <div><span>Session</span><strong>Active</strong></div>
         </div>
-        {!platform&&<a className="secondary-btn account-tray-link" href="/account">Manage company setup</a>}
-        {platform&&<a className="secondary-btn account-tray-link" href="/platform">Open platform control</a>}
+        {!platform&&<button className="secondary-btn account-tray-link" onClick={()=>{setAccountOpen(false);navigate('/account')}}>Manage company setup</button>}
+        {platform&&<button className="secondary-btn account-tray-link" onClick={()=>{setAccountOpen(false);navigate('/platform')}}>Open platform control</button>}
         <button className="primary-btn account-signout" onClick={signOut} disabled={signingOut}>{signingOut?'Signing out…':'Sign out'}</button>
       </aside>
     </>}
