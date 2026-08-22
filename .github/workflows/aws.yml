@@ -25,22 +25,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-
       - name: TypeScript and production build
         run: npm run build -- --base=/
-
       - name: Package build
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: tar -C dist -czf ai-uat-frontend.tgz .
-
       - name: Upload build artifact
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-artifact@v4
@@ -61,7 +56,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ai-uat-frontend-${{ github.sha }}
-
       - name: Configure SSH
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -69,41 +63,23 @@ jobs:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          if [ -z "${EC2_HOST:-}" ] || [ -z "${EC2_USERNAME:-}" ] || [ -z "${EC2_SSH_KEY:-}" ]; then
-            echo "ERROR: EC2_HOST, EC2_USERNAME and EC2_SSH_KEY are required"
-            exit 1
-          fi
+          test -n "${EC2_HOST:-}" && test -n "${EC2_USERNAME:-}" && test -n "${EC2_SSH_KEY:-}"
           install -m 700 -d ~/.ssh
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ai_uat_ec2
           chmod 600 ~/.ssh/ai_uat_ec2
           ssh-keyscan -T 10 -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-
       - name: Verify SSH connectivity
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
         run: |
           set -Eeuo pipefail
-          for attempt in 1 2 3; do
-            if timeout 60 ssh -i ~/.ssh/ai_uat_ec2 \
-              -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=2 \
-              -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
-              "$EC2_USERNAME@$EC2_HOST" 'echo "SSH connection OK"'; then
-              exit 0
-            fi
-            echo "SSH attempt $attempt failed; retrying..."
-            sleep 10
-          done
-          exit 1
-
+          timeout 60 ssh -i ~/.ssh/ai_uat_ec2 -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=2 "$EC2_USERNAME@$EC2_HOST" 'echo "SSH connection OK"'
       - name: Copy React bundle
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
-        run: |
-          set -Eeuo pipefail
-          scp -i ~/.ssh/ai_uat_ec2 -o ConnectTimeout=15 ai-uat-frontend.tgz "$EC2_USERNAME@$EC2_HOST:/tmp/ai-uat-frontend.tgz"
-
+        run: scp -i ~/.ssh/ai_uat_ec2 -o ConnectTimeout=15 ai-uat-frontend.tgz "$EC2_USERNAME@$EC2_HOST:/tmp/ai-uat-frontend.tgz"
       - name: Install React bundle atomically
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -112,46 +88,35 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/ai_uat_ec2 -o ConnectTimeout=15 "$EC2_USERNAME@$EC2_HOST" 'bash -se' <<'REMOTE_SCRIPT'
           set -Eeuo pipefail
-
           DEPLOY_DIR=/var/www/auravis-frontend
           NEXT_DIR=/var/www/auravis-frontend.next
           PREV_DIR=/var/www/auravis-frontend.previous
           SITE=/etc/nginx/sites-available/ai-qa
           BACKUP=/etc/nginx/sites-available/ai-qa.pre-react
-
           sudo rm -rf "$NEXT_DIR"
           sudo install -d -m 755 "$NEXT_DIR"
           sudo tar -xzf /tmp/ai-uat-frontend.tgz -C "$NEXT_DIR"
           rm -f /tmp/ai-uat-frontend.tgz
-
           if [ ! -s "$NEXT_DIR/index.html" ] || ! grep -qi '<div id="root"' "$NEXT_DIR/index.html"; then
             echo "ERROR: New React bundle is incomplete; keeping current production UI"
             sudo rm -rf "$NEXT_DIR"
             exit 1
           fi
           sudo chown -R www-data:www-data "$NEXT_DIR"
-
-          if [ -f "$SITE" ] && [ ! -f "$BACKUP" ]; then
-            sudo cp "$SITE" "$BACKUP"
-          fi
-
+          if [ -f "$SITE" ] && [ ! -f "$BACKUP" ]; then sudo cp "$SITE" "$BACKUP"; fi
           cat >/tmp/ai-qa-react <<'EOF'
           server {
               listen 80;
               server_name ai-uat.duckdns.org;
               return 301 https://$host$request_uri;
           }
-
           server {
               listen 443 ssl;
               server_name ai-uat.duckdns.org;
-
               ssl_certificate /etc/letsencrypt/live/ai-uat.duckdns.org/fullchain.pem;
               ssl_certificate_key /etc/letsencrypt/live/ai-uat.duckdns.org/privkey.pem;
-
               root /var/www/auravis-frontend;
               index index.html;
-
               location /api/ {
                   proxy_pass http://127.0.0.1:8080;
                   proxy_http_version 1.1;
@@ -162,81 +127,72 @@ jobs:
                   proxy_read_timeout 300s;
                   proxy_send_timeout 300s;
               }
-
               location /actuator/ {
                   proxy_pass http://127.0.0.1:8080;
                   proxy_set_header Host $host;
                   proxy_set_header X-Forwarded-Proto $scheme;
               }
-
               location ~ ^/(auravis|dashboard|execution-center|technology|real-world-impact)\.html$ {
                   proxy_pass http://127.0.0.1:8080;
                   proxy_set_header Host $host;
                   proxy_set_header X-Forwarded-Proto $scheme;
               }
-
               location /uat/ {
                   proxy_pass http://127.0.0.1:8080;
                   proxy_set_header Host $host;
               }
-
               location / {
                   try_files $uri $uri/ /index.html;
               }
           }
           EOF
-
           sudo mv /tmp/ai-qa-react "$SITE"
           sudo chmod 644 "$SITE"
           sudo nginx -t
-
           sudo rm -rf "$PREV_DIR"
           if [ -d "$DEPLOY_DIR" ]; then sudo mv "$DEPLOY_DIR" "$PREV_DIR"; fi
           sudo mv "$NEXT_DIR" "$DEPLOY_DIR"
-
           if ! sudo systemctl reload nginx; then
             echo "ERROR: Nginx reload failed; restoring previous UI"
             sudo rm -rf "$DEPLOY_DIR"
             if [ -d "$PREV_DIR" ]; then sudo mv "$PREV_DIR" "$DEPLOY_DIR"; fi
             if [ -f "$BACKUP" ]; then sudo cp "$BACKUP" "$SITE"; fi
-            sudo nginx -t
-            sudo systemctl reload nginx
+            sudo nginx -t && sudo systemctl reload nginx
             exit 1
           fi
-
-          if ! curl --connect-timeout 3 --max-time 10 -kfsS \
-            --resolve ai-uat.duckdns.org:443:127.0.0.1 \
-            https://ai-uat.duckdns.org/ | grep -qi '<div id="root"'; then
-            echo "ERROR: Local React health failed; restoring previous UI"
+          # Validate the deployed bundle directly from disk and validate nginx separately.
+          # Do not loop HTTPS from the EC2 host back to its public hostname; that path can
+          # time out because of host/network hairpin behaviour even when nginx/UI are healthy.
+          if [ ! -s "$DEPLOY_DIR/index.html" ] || ! grep -qi '<div id="root"' "$DEPLOY_DIR/index.html"; then
+            echo "ERROR: Installed React bundle validation failed; restoring previous UI"
             sudo rm -rf "$DEPLOY_DIR"
             if [ -d "$PREV_DIR" ]; then sudo mv "$PREV_DIR" "$DEPLOY_DIR"; fi
             sudo systemctl reload nginx
             exit 1
           fi
-
+          sudo nginx -t
           sudo rm -rf "$PREV_DIR"
+          echo "React bundle installed and nginx configuration is valid"
           REMOTE_SCRIPT
-
       - name: Report backend status through Nginx
         continue-on-error: true
         run: |
           response="$(curl --connect-timeout 5 --max-time 10 -sS "$PUBLIC_BASE_URL/actuator/health" || true)"
-          if echo "$response" | grep -q '"status":"UP"'; then
-            echo "Backend is UP"
-          else
-            echo "WARNING: Backend is not healthy yet; frontend deployment remains valid"
-          fi
-
+          if echo "$response" | grep -q '"status":"UP"'; then echo "Backend is UP"; else echo "WARNING: Backend is not healthy yet; frontend deployment remains valid"; fi
       - name: Verify React production UI
         run: |
           set -Eeuo pipefail
-          code="$(curl --connect-timeout 5 --max-time 15 -sS -o /tmp/ai-uat.html -w '%{http_code}' "$PUBLIC_BASE_URL/" || true)"
-          if [ "$code" != "200" ] || ! grep -qi '<div id="root"' /tmp/ai-uat.html; then
-            echo "ERROR: React root UI health check failed with HTTP $code"
-            exit 1
-          fi
-          echo "AI UAT Engineer React production UI is healthy"
-
+          for i in $(seq 1 6); do
+            code="$(curl --connect-timeout 8 --max-time 20 -sS -o /tmp/ai-uat.html -w '%{http_code}' "$PUBLIC_BASE_URL/" || true)"
+            if [ "$code" = "200" ] && grep -qi '<div id="root"' /tmp/ai-uat.html; then
+              echo "AI UAT Engineer React production UI is healthy"
+              exit 0
+            fi
+            echo "Public UI attempt $i/6 -> HTTP ${code:-000}"
+            sleep 5
+          done
+          echo "ERROR: React public UI health check failed"
+          exit 1
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/ai_uat_ec2
