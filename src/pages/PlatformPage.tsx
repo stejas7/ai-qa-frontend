@@ -14,8 +14,13 @@ export default function PlatformPage(){
   const audit=useQuery({queryKey:['platform-audit'],queryFn:platformApi.audit,enabled,refetchInterval:30000});
   const traffic=useQuery({queryKey:['platform-traffic'],queryFn:platformApi.traffic,enabled,refetchInterval:15000});
   const recentVisits=useQuery({queryKey:['platform-recent-visits'],queryFn:()=>platformApi.recentVisits(50),enabled,refetchInterval:15000});
+  const dbTables=useQuery({queryKey:['platform-db-tables'],queryFn:platformApi.databaseTables,enabled});
   const [search,setSearch]=useState('');
   const [companyFilter,setCompanyFilter]=useState('ALL');
+  const [selectedTable,setSelectedTable]=useState('');
+  const [dbPage,setDbPage]=useState(0);
+  const [dbSize,setDbSize]=useState(20);
+  const dbRows=useQuery({queryKey:['platform-db-rows',selectedTable,dbPage,dbSize],queryFn:()=>platformApi.databaseRows(selectedTable,dbPage,dbSize),enabled:enabled&&!!selectedTable});
 
   if(session.isLoading)return <main className="page"><p>Loading platform…</p></main>;
   if(!enabled)return <main className="page"><div className="eyebrow">PLATFORM ADMIN</div><h1>Platform owner access required</h1><p className="lead">This workspace is available only to the platform owner.</p></main>;
@@ -35,11 +40,12 @@ export default function PlatformPage(){
   const visibleVisits=visitRows.filter(v=>(companyFilter==='ALL'||v.companyId===companyFilter||(!v.companyId&&companyFilter==='ALL'))&&(!norm||`${v.identity} ${v.path} ${v.visitor}`.toLowerCase().includes(norm)));
   const fmtDuration=(ms:number|null)=>ms===null?'—':ms<1000?`${ms} ms`:`${Math.round(ms/1000)} s`;
   const fmtUptime=(ms:number)=>{const mins=Math.floor(ms/60000);const hours=Math.floor(mins/60);const days=Math.floor(hours/24);return days>0?`${days}d ${hours%24}h`:hours>0?`${hours}h ${mins%60}m`:`${mins}m`;};
+  const displayValue=(value:unknown)=>value===null||value===undefined?'—':typeof value==='object'?JSON.stringify(value):String(value);
 
   return <main className="page">
     <div className="eyebrow">PLATFORM ADMIN</div>
     <h1>Platform Control Center</h1>
-    <p className="lead">One place to watch companies, users, products, traffic, UAT activity and platform health.</p>
+    <p className="lead">One place to watch companies, users, products, traffic, database activity, UAT execution and platform health.</p>
 
     <section className="panel">
       <div className="section-heading"><div><div className="eyebrow">OVERVIEW</div><h2>Platform health</h2></div><span className={`status ${health?.health==='HEALTHY'?'completed':'failed'}`}>{health?.health??(diagnostics.isLoading?'CHECKING':'UNAVAILABLE')}</span></div>
@@ -62,25 +68,30 @@ export default function PlatformPage(){
 
     <section className="panel">
       <div className="section-heading"><div><div className="eyebrow">LIVE TRAFFIC</div><h2>Who visited which page</h2></div><span className="status completed">AUTO REFRESH 15s</span></div>
-      <p className="lead">Authenticated visits show the known account email and company. Public traffic remains Anonymous by design; we do not invent a person's name or store raw IP/session identifiers.</p>
+      <p className="lead">Authenticated visits show the known account email and company. Public traffic remains Anonymous by design; no fake name and no raw IP/session ID is stored.</p>
       {traffic.isError||recentVisits.isError?<p className="error-text">Unable to load visitor analytics.</p>:<>
-        <div className="summary-strip">
-          <article><strong>{traffic.data?.visitsToday??0}</strong><span>Page views today</span></article>
-          <article><strong>{traffic.data?.uniqueVisitorsToday??0}</strong><span>Unique visitors today</span></article>
-          <article><strong>{traffic.data?.authenticatedVisitorsToday??0}</strong><span>Known users today</span></article>
-          <article><strong>{traffic.data?.activeAuthenticatedUsers??0}</strong><span>Active now (15 min)</span></article>
-        </div>
+        <div className="summary-strip"><article><strong>{traffic.data?.visitsToday??0}</strong><span>Page views today</span></article><article><strong>{traffic.data?.uniqueVisitorsToday??0}</strong><span>Unique visitors today</span></article><article><strong>{traffic.data?.authenticatedVisitorsToday??0}</strong><span>Known users today</span></article><article><strong>{traffic.data?.activeAuthenticatedUsers??0}</strong><span>Active now (15 min)</span></article></div>
         <div className="table-wrap"><table><thead><tr><th>Time</th><th>Visitor</th><th>Company</th><th>Page</th><th>Browser ID</th></tr></thead><tbody>{visibleVisits.length===0?<tr><td colSpan={5}>No visits match this view.</td></tr>:visibleVisits.map((v,i)=><tr key={`${v.visitedAt}-${v.visitor}-${i}`}><td>{new Date(v.visitedAt).toLocaleString()}</td><td><strong>{v.identity}</strong></td><td>{v.companyId?companyNameById.get(v.companyId)??v.companyId:'Public'}</td><td>{v.path}</td><td>{v.visitor}</td></tr>)}</tbody></table></div>
         {traffic.data?.topPages?.length?<div className="role-grid">{traffic.data.topPages.slice(0,6).map(p=><article key={p.path}><strong>{p.path}</strong><p>{p.visits} views</p></article>)}</div>:null}
       </>}
     </section>
 
     <section className="panel">
+      <div className="section-heading"><div><div className="eyebrow">DATABASE</div><h2>Read-only data explorer</h2></div><span>{dbTables.data?.length??0} tables</span></div>
+      <p className="lead">Platform Admin can inspect safe application data only. Passwords, tokens, secrets, cookies, sessions and credential fields are removed server-side.</p>
+      {dbTables.isError?<p className="error-text">Unable to load database tables.</p>:<div className="form-grid"><label className="field"><span>Table</span><select value={selectedTable} onChange={e=>{setSelectedTable(e.target.value);setDbPage(0)}}><option value="">Choose table…</option>{(dbTables.data??[]).map(t=><option key={t.name} value={t.name}>{t.name} ({t.rows} rows)</option>)}</select></label><label className="field"><span>Rows per page</span><select value={dbSize} onChange={e=>{setDbSize(Number(e.target.value));setDbPage(0)}}><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option></select></label></div>}
+      {selectedTable&&dbRows.isLoading?<p>Loading table…</p>:null}
+      {selectedTable&&dbRows.isError?<p className="error-text">Unable to load table data.</p>:null}
+      {dbRows.data?<>
+        <div className="section-heading"><div><strong>{dbRows.data.table}</strong><small> {dbRows.data.totalRows} total rows • page {dbRows.data.page+1} of {Math.max(1,dbRows.data.totalPages)}</small></div></div>
+        <div className="table-wrap"><table><thead><tr>{dbRows.data.columns.map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>{dbRows.data.rows.length===0?<tr><td colSpan={Math.max(1,dbRows.data.columns.length)}>No rows.</td></tr>:dbRows.data.rows.map((row,i)=><tr key={i}>{dbRows.data.columns.map(c=><td key={c}>{displayValue(row[c])}</td>)}</tr>)}</tbody></table></div>
+        <div className="button-row"><button type="button" className="secondary-btn" disabled={dbPage<=0} onClick={()=>setDbPage(p=>Math.max(0,p-1))}>Previous</button><span>Page {dbRows.data.page+1} / {Math.max(1,dbRows.data.totalPages)}</span><button type="button" className="secondary-btn" disabled={dbRows.data.totalPages===0||dbPage+1>=dbRows.data.totalPages} onClick={()=>setDbPage(p=>p+1)}>Next</button></div>
+      </>:null}
+    </section>
+
+    <section className="panel">
       <div className="section-heading"><div><div className="eyebrow">FILTER</div><h2>Choose what to inspect</h2></div></div>
-      <div className="form-grid">
-        <label className="field"><span>Company</span><select value={companyFilter} onChange={e=>setCompanyFilter(e.target.value)}><option value="ALL">All companies</option>{companyRows.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-        <label className="field"><span>Search</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Company, user, page, requirement, event…"/></label>
-      </div>
+      <div className="form-grid"><label className="field"><span>Company</span><select value={companyFilter} onChange={e=>setCompanyFilter(e.target.value)}><option value="ALL">All companies</option>{companyRows.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="field"><span>Search</span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Company, user, page, requirement, event…"/></label></div>
     </section>
 
     <section className="panel">
