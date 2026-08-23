@@ -35,7 +35,7 @@ export const aiUatApi={
   registerCompany:(payload:{companyName:string;slug?:string;adminEmail:string;password:string})=>request<CompanyRegistration>('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
   login:(email:string,password:string)=>request<CurrentUser>('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})}),
   currentUser:()=>request<CurrentUser>('/api/auth/me'),
-  logout:async()=>{const result=await request<{loggedOut:boolean}>('/api/auth/logout',{method:'POST'});window.location.assign('/');return result},
+  logout:()=>request<{loggedOut:boolean}>('/api/auth/logout',{method:'POST'}),
   ssoProviders:()=>request<{providers:string[]}>('/api/auth/sso/providers'),
   companyUsers:()=>request<CompanyUser[]>('/api/company/users'),createCompanyUser:(payload:{email:string;password:string;role:CompanyUserRole})=>request<CompanyUser>('/api/company/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),deactivateCompanyUser:(id:string)=>request<CompanyUser>(`/api/company/users/${id}/deactivate`,{method:'PATCH'}),
   runs:()=>request<PipelineRunSummary[]>('/api/pipeline/runs'),stats:()=>request<PipelineStats>('/api/pipeline/stats'),run:(id:string)=>request<PipelineRunDetail>(`/api/pipeline/runs/${id}`),
